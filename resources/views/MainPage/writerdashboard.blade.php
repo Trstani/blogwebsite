@@ -66,11 +66,11 @@
                     <label class="block text-xs font-medium text-gray-700 mb-1">Category *</label>
                     <select name="category" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black transition-colors bg-white" required>
                         <option value="" disabled selected>Select category</option>
-                        <option value="teknologi">Teknologi</option>
-                        <option value="lifestyle">Lifestyle</option>
-                        <option value="panduan">Panduan</option>
-                        <option value="berita">Berita</option>
-                        <option value="opini">Opini</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
                     </select>
                 </div>
                 <div class="mb-4">
@@ -183,19 +183,16 @@
             const coverFileInput = document.getElementById('coverInput');
             const coverFile = coverFileInput.files[0];
 
-            const categoryMap = {
-                'teknologi': 1,   // Technology
-                'design': 2,
-                'lifestyle': 3,
-                'panduan': 5,     // Guide
-                'berita': 4,      // News
-                'opini': 6,       // Review (closest match to opinion)
-            };
+            const categoryId = formData.get('category');
 
-            const categoryId = categoryMap[category.toLowerCase()] || 1;
+            const selectedCategory = form.querySelector(
+                'select[name="category"] option:checked'
+            );
+
+            const categoryName = selectedCategory?.textContent.trim() || '';
 
             sessionStorage.setItem('articleTitle', title);
-            sessionStorage.setItem('articleCategory', category);
+            sessionStorage.setItem('articleCategory', categoryName);
             sessionStorage.setItem('articleCategoryId', categoryId);
             sessionStorage.setItem('articleDescription', description);
 
