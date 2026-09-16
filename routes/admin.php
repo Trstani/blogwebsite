@@ -10,8 +10,6 @@ Route::get('/admin/dashboard', function () {
     $user = auth()->user();
 
     $totalUsers = User::count();
-    $onlineUsers = User::where('last_seen_at', '>=', now()->subMinutes(5))->count();
-    $totalArticles = Article::count();
     $published = Article::where('status', 'published')->count();
     $pending = Article::where('status', 'pending')->count();
 
@@ -40,7 +38,7 @@ Route::get('/admin/dashboard', function () {
     $admins = $user->role === 'super_admin' ? User::where('role', 'admin')->get() : collect();
 
     return view('MainPage.admindashboard', compact(
-        'totalUsers', 'onlineUsers', 'totalArticles', 'published', 'pending',
+        'totalUsers', 'published', 'pending',
         'pendingByCategory', 'pendingArticles', 'categories', 'writers', 'admins',
         'filterCategory'
     ));

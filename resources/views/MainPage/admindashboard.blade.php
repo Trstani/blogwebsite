@@ -17,14 +17,10 @@
         @endif
 
         {{-- Stats Cards --}}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div class="bg-white border border-gray-100 rounded-lg p-5">
                 <p class="text-xs text-gray-400 uppercase tracking-wider">Total Users</p>
                 <p class="text-2xl font-bold text-black mt-1">{{ $totalUsers }}</p>
-            </div>
-            <div class="bg-white border border-gray-100 rounded-lg p-5">
-                <p class="text-xs text-gray-400 uppercase tracking-wider">Online Now</p>
-                <p class="text-2xl font-bold text-green-600 mt-1">{{ $onlineUsers }}</p>
             </div>
             <div class="bg-white border border-gray-100 rounded-lg p-5">
                 <p class="text-xs text-gray-400 uppercase tracking-wider">Published</p>
