@@ -42,7 +42,7 @@ Route::get('/admin/dashboard', function () {
         'pendingByCategory', 'pendingArticles', 'categories', 'writers', 'admins',
         'filterCategory'
     ));
-})->name('admin.dashboard')->middleware('auth');
+})->name('admin.dashboard')->middleware(['auth', 'admin']);
 
 Route::post('/admin/articles/{article}/approve', function (Article $article) {
     $article->status = 'published';
@@ -50,7 +50,7 @@ Route::post('/admin/articles/{article}/approve', function (Article $article) {
     $article->save();
 
     return back()->with('success', 'Article published!');
-})->name('admin.approve')->middleware('auth');
+})->name('admin.approve')->middleware(['auth', 'admin']);
 
 Route::post('/admin/articles/{article}/reject', function (Request $request, Article $article) {
     $request->validate([
@@ -62,7 +62,7 @@ Route::post('/admin/articles/{article}/reject', function (Request $request, Arti
     $article->save();
 
     return back()->with('success', 'Article rejected with feedback.');
-})->name('admin.reject')->middleware('auth');
+})->name('admin.reject')->middleware(['auth', 'admin']);
 
 Route::post('/admin/users/{user}/promote', function (User $user) {
     if (auth()->user()->role !== 'super_admin') {
@@ -72,7 +72,7 @@ Route::post('/admin/users/{user}/promote', function (User $user) {
     $user->save();
 
     return back()->with('success', $user->name.' promoted to admin.');
-})->name('admin.promote')->middleware('auth');
+})->name('admin.promote')->middleware(['auth', 'admin']);
 
 Route::post('/admin/users/{user}/demote', function (User $user) {
     if (auth()->user()->role !== 'super_admin') {
@@ -93,7 +93,7 @@ Route::post('/admin/users/{user}/demote', function (User $user) {
     $user->save();
 
     return back()->with('success', $user->name.' demoted to writer.');
-})->name('admin.demote')->middleware('auth');
+})->name('admin.demote')->middleware(['auth', 'admin']);
 
 Route::post('/admin/articles/{article}/feature', function (Article $article) {
     $article->is_featured = ! $article->is_featured;
@@ -101,4 +101,4 @@ Route::post('/admin/articles/{article}/feature', function (Article $article) {
     $status = $article->is_featured ? 'Added to featured' : 'Removed from featured';
 
     return back()->with('success', $status);
-})->name('admin.feature')->middleware('auth');
+})->name('admin.feature')->middleware(['auth', 'admin']);
