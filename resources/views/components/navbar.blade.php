@@ -4,13 +4,12 @@
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
 
         {{-- Logo --}}
-        <a href="/" class="flex items-center space-x-3 group">
-            <div class="relative w-10 h-10 bg-cyan-300 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                <span class="text-white font-bold text-lg">C</span>
-            </div>
-            <span class="text-xl font-bold tracking-tight text-gray-900 group-hover:text-black transition-colors">
-                Create<span class="text-cyan-300"> Eve</span>
-            </span>
+        <a href="/" class="flex items-center group">
+            <img
+                src="{{ asset('logo/createeve.png') }}"
+                alt="Create Eve"
+                class="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+            >
         </a>
 
         {{-- Center Links --}}
@@ -103,13 +102,29 @@
             @endguest
 
             @auth
-                <a href="/writer/write" class="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-100 transition-colors">Write</a>
+                <a href="/writer/dashboard"
+                class="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-100 transition-colors">
+                    Write
+                </a>
+
+                <a href="{{ route('profile', auth()->user()->slug) }}"
+                class="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-100 transition-colors">
+                    Profile
+                </a>
+
                 @if(auth()->user()->role === 'admin' || auth()->user()->role === 'super_admin')
-                    <a href="/admin/dashboard" class="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-100 transition-colors">Admin</a>
+                    <a href="/admin/dashboard"
+                    class="px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-100 transition-colors">
+                        Admin
+                    </a>
                 @endif
+
                 <form method="POST" action="{{ route('logout') }}" class="mt-1">
                     @csrf
-                    <button type="submit" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors">Logout</button>
+                    <button type="submit"
+                            class="w-full text-left px-4 py-3 text-sm font-medium text-gray-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors">
+                        Logout
+                    </button>
                 </form>
             @endauth
         </div>

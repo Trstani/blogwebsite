@@ -266,7 +266,7 @@
     {{-- Comments Section (Published Articles Only) --}}
     @if($article->status === 'published')
         <div class="max-w-5xl mx-auto px-6 py-12 border-t border-gray-100">
-            <h2 class="text-2xl font-bold text-black mb-8">Comments ({{ $article->comments->count() }})</h2>
+            <h2 id="commentHeading" class="text-2xl font-bold text-black mb-8">Comments ({{ $article->comments->count() }})</h2>
 
             {{-- Comment Form --}}
             @if(auth()->check())
@@ -509,22 +509,23 @@
                         commentsList.insertAdjacentHTML('afterbegin', newCommentHTML);
 
                         // Update comment count
-                        const heading = document.querySelector('h2');
+                    const heading = document.getElementById('commentsHeading');
                         if (heading) {
-                            const count = parseInt(heading.textContent.match(/\d+/)[0]) + 1;
+                            const match = heading.textContent.match(/\d+/);
+                            const count = match ? parseInt(match[0], 10) + 1 : 1;
                             heading.textContent = `Comments (${count})`;
                         }
-                    } else {
-                        alert(data.message || 'Failed to post comment.');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while posting your comment.');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                }
-            });
+                            } else {
+                                alert(data.message || 'Failed to post comment.');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('An error occurred while posting your comment.');
+                        } finally {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                        }
+                    });
 
             // Character counter
             document.getElementById('commentContent')?.addEventListener('input', function() {
