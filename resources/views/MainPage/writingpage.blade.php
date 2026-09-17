@@ -816,11 +816,6 @@
         ====================================================== */
 
         function markDirty() {
-            console.trace('markDirty called', {
-                isInitializing,
-                isDirty,
-                activeElement: document.activeElement?.outerHTML?.slice(0, 300)
-            });
 
             if (!isInitializing) {
                 isDirty = true;
@@ -921,89 +916,56 @@
         }
 
 
-        async function handleSaveDraftFromModal() {
-
-            if (isSaving) {
-                return;
-            }
+       async function handleSaveDraftFromModal() {
+            if (isSaving) return;
 
             try {
-
                 isSaving = true;
 
-                const button =
-                    document.querySelector(
-                        '[onclick="handleSaveDraftFromModal()"]'
-                    );
+                const button = document.querySelector(
+                    '[onclick="handleSaveDraftFromModal()"]'
+                );
 
-                if (button) {
-                    button.disabled = true;
-                }
+                if (button) button.disabled = true;
 
-                const sections =
-                    getSectionsData();
+                const sections = getSectionsData();
 
-                if (
-                    !validateSections(sections)
-                ) {
-                    return;
-                }
+                if (!validateSections(sections)) return;
 
-                const response =
-                    await saveArticleData(sections);
+                const response = await saveArticleData(sections);
 
                 if (response.success) {
-
+                    updateSectionIdsAfterSave(response.sections);
                     clearDirty();
 
-                    const destination =
-                        pendingNavigation;
+                    const destination = pendingNavigation;
 
                     closeUnsavedChangesModal();
 
                     if (destination) {
-                        window.location.href =
-                            destination;
+                        window.location.href = destination;
                     }
-
                 } else {
-
                     alert(
                         'Error saving draft: ' +
-                        (
-                            response.error ||
-                            'Unknown error'
-                        )
+                        (response.error || response.message || 'Unknown error')
                     );
                 }
-
             } catch (err) {
-
-                console.error(
-                    'Save error:',
-                    err
-                );
-
-                alert(
-                    'Error saving draft: ' +
-                    err.message
-                );
-
+                console.error('Save error:', err);
+                alert('Error saving draft: ' + err.message);
             } finally {
-
                 isSaving = false;
 
-                const button =
-                    document.querySelector(
-                        '[onclick="handleSaveDraftFromModal()"]'
-                    );
+                const button = document.querySelector(
+                    '[onclick="handleSaveDraftFromModal()"]'
+                );
 
-                if (button) {
-                    button.disabled = false;
-                }
+                if (button) button.disabled = false;
+
+                updateSaveStatus();
             }
         }
-
 
         /* =====================================================
            DOM READY
@@ -1218,6 +1180,19 @@
             block.setAttribute(
                 'data-type',
                 type
+            );
+
+            const clientId =
+                'section-' +
+                Date.now() +
+                '-' +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 9);
+
+            block.setAttribute(
+                'data-client-id',
+                clientId
             );
 
 
@@ -1452,12 +1427,24 @@
 
 
             if (sectionId) {
-
                 block.setAttribute(
                     'data-section-id',
                     sectionId
                 );
             }
+
+            const clientId =
+                'section-' +
+                Date.now() +
+                '-' +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 9);
+
+            block.setAttribute(
+                'data-client-id',
+                clientId
+            );
 
 
             const menu = `
@@ -1556,13 +1543,6 @@
                     'text-change',
                     function(delta, oldDelta, source) {
 
-                        console.log('QUILL TEXT CHANGE', {
-                            source,
-                            delta,
-                            oldDelta,
-                            isInitializing,
-                            isDirty
-                        });
 
                         if (source === 'user') {
                             markDirty();
@@ -1781,13 +1761,6 @@
                 'text-change',
                 function(delta, oldDelta, source) {
 
-                    console.log('QUILL TEXT CHANGE', {
-                        source,
-                        delta,
-                        oldDelta,
-                        isInitializing,
-                        isDirty
-                    });
 
                     if (source === 'user') {
                         markDirty();
@@ -2474,6 +2447,22 @@
             });
         }
 
+        function updateSectionIdsAfterSave(savedSections) {
+            if (!Array.isArray(savedSections)) return;
+
+            savedSections.forEach(function(savedSection) {
+                if (!savedSection.client_id || !savedSection.id) return;
+
+                const block = document.querySelector(
+                    `[data-client-id="${CSS.escape(savedSection.client_id)}"]`
+                );
+
+                if (!block) return;
+
+                block.setAttribute('data-section-id', savedSection.id);
+            });
+        }
+
 
         /* =====================================================
            AUTOSAVE
@@ -2503,10 +2492,7 @@
 
 
         async function autoSave() {
-
-            if (isSaving || !currentArticleId || !isDirty) {
-                return;
-            }
+            if (isSaving || !currentArticleId || !isDirty) return;
 
             try {
                 isSaving = true;
@@ -2514,13 +2500,12 @@
 
                 const sections = getSectionsData();
 
-                if (!validateSections(sections)) {
-                    return;
-                }
+                if (!validateSections(sections)) return;
 
                 const data = await saveArticleData(sections);
 
                 if (data.success) {
+                    updateSectionIdsAfterSave(data.sections);
                     clearDirty();
                 } else {
                     throw new Error(
@@ -2529,14 +2514,12 @@
                         'Auto-save failed'
                     );
                 }
-
             } catch (err) {
                 console.error('Auto-save error:', err);
 
                 isDirty = true;
 
-                const statusEl =
-                    document.getElementById('saveStatus');
+                const statusEl = document.getElementById('saveStatus');
 
                 if (statusEl) {
                     statusEl.textContent = 'Save failed';
@@ -2545,11 +2528,8 @@
                 }
 
                 setTimeout(function() {
-                    if (!isSaving) {
-                        updateSaveStatus();
-                    }
+                    if (!isSaving) updateSaveStatus();
                 }, 2500);
-
             } finally {
                 isSaving = false;
                 updateSaveStatus();
@@ -2562,83 +2542,41 @@
         ====================================================== */
 
         async function saveDraft() {
-
-            if (isSaving) {
-                return;
-            }
-
+            if (isSaving) return;
 
             if (!currentArticleId) {
-
-                alert(
-                    'Article belum tersimpan. Tunggu sebentar...'
-                );
-
+                alert('Article belum tersimpan. Tunggu sebentar...');
                 return;
             }
 
-
             try {
-
                 isSaving = true;
+                updateSaveStatus();
 
+                const sections = getSectionsData();
 
-                const sections =
-                    getSectionsData();
+                if (!validateSections(sections)) return;
 
-
-                if (
-                    !validateSections(sections)
-                ) {
-                    return;
-                }
-
-
-                const data =
-                    await saveArticleData(
-                        sections
-                    );
-
+                const data = await saveArticleData(sections);
 
                 if (data.success) {
-
+                    updateSectionIdsAfterSave(data.sections);
                     clearDirty();
-
-                    alert(
-                        'Draft saved!'
-                    );
-
+                    alert('Draft saved!');
                 } else {
-
                     alert(
                         'Error saving draft: ' +
-                        (
-                            data.error ||
-                            data.message ||
-                            'Unknown error'
-                        )
+                        (data.error || data.message || 'Unknown error')
                     );
                 }
-
             } catch (err) {
-
-                console.error(
-                    'Save error:',
-                    err
-                );
-
-                alert(
-                    'Error saving draft: ' +
-                    err.message
-                );
-
+                console.error('Save error:', err);
+                alert('Error saving draft: ' + err.message);
             } finally {
-
                 isSaving = false;
                 updateSaveStatus();
             }
         }
-
 
         function openSubmitModal() {
 
@@ -2718,50 +2656,24 @@
 
 
         async function submitArticle() {
-
-            if (isSaving) {
-                return;
-            }
-
+            if (isSaving) return;
 
             if (!currentArticleId) {
-
-                alert(
-                    'Article belum tersimpan. Tunggu sebentar...'
-                );
-
+                alert('Article belum tersimpan. Tunggu sebentar...');
                 return;
             }
 
-
             try {
-
                 isSaving = true;
                 updateSaveStatus();
 
+                const sections = getSectionsData();
 
-                const sections =
-                    getSectionsData();
+                if (!validateSections(sections)) return;
 
-
-                if (
-                    !validateSections(sections)
-                ) {
-                    return;
-                }
-
-
-                /*
-                 * Save current article content first.
-                 */
-                const saveData =
-                    await saveArticleData(
-                        sections
-                    );
-
+                const saveData = await saveArticleData(sections);
 
                 if (!saveData.success) {
-
                     throw new Error(
                         saveData.error ||
                         saveData.message ||
@@ -2769,43 +2681,31 @@
                     );
                 }
 
+                updateSectionIdsAfterSave(saveData.sections);
 
-                /*
-                 * Then submit for review.
-                 */
-                const response =
-                    await fetch(
-                        `/articles/${currentArticleId}/submit`,
-                        {
-                            method: 'POST',
+                const response = await fetch(
+                    `/articles/${currentArticleId}/submit`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken(),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    }
+                );
 
-                            headers: {
-                                'Content-Type':
-                                    'application/json',
-
-                                'X-CSRF-TOKEN':
-                                    getCsrfToken(),
-
-                                'Accept':
-                                    'application/json'
-                            },
-
-                            body: JSON.stringify({})
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
+                const data = await response.json();
 
                 if (data.success) {
-
                     clearDirty();
 
                     submitModalState = 'success';
-                    const modal =
-                        document.getElementById('submitReviewModal');
+
+                    const modal = document.getElementById(
+                        'submitReviewModal'
+                    );
 
                     if (modal) {
                         updateSubmitModal();
@@ -2814,44 +2714,37 @@
                     } else {
                         window.location.href = '/writer/dashboard';
                     }
-
                 } else {
-
                     throw new Error(
                         data.error ||
                         data.message ||
                         'Failed to submit article'
                     );
                 }
-
             } catch (err) {
-
-                console.error(
-                    'Submit error:',
-                    err
-                );
+                console.error('Submit error:', err);
 
                 submitModalState = 'error';
 
-                const errorMessage =
-                    document.getElementById('submitErrorMessage');
+                const errorMessage = document.getElementById(
+                    'submitErrorMessage'
+                );
 
                 if (errorMessage) {
                     errorMessage.textContent =
                         err.message || 'Failed to submit article';
                 }
 
-                const modal =
-                    document.getElementById('submitReviewModal');
+                const modal = document.getElementById(
+                    'submitReviewModal'
+                );
 
                 if (modal) {
                     updateSubmitModal();
                     modal.classList.remove('hidden');
                     modal.classList.add('flex');
                 }
-
             } finally {
-
                 isSaving = false;
                 updateSaveStatus();
             }
@@ -2914,12 +2807,6 @@
                                 'application/json'
                         },
 
-                        /*
-                         * We send title + description here too.
-                         *
-                         * The ArticleController will be updated
-                         * in the next step to process these fields.
-                         */
                         body: JSON.stringify({
                             title: title,
                             description: description,
@@ -3263,180 +3150,194 @@
            GET SECTIONS DATA
         ====================================================== */
 
-        function getSectionsData() {
+      function getSectionsData() {
+        const sections = [];
+        document
+            .querySelectorAll('[data-type]')
+            .forEach(function(block) {
 
-            const sections = [];
+                const type =
+                    block.getAttribute('data-type');
 
+                /*
+                * Existing section:
+                * use database ID.
+                *
+                * New section:
+                * generate a temporary client ID so the
+                * backend can return the newly created
+                * database ID to this exact DOM block.
+                */
+                let clientId =
+                    block.getAttribute('data-client-id');
 
-            document
-                .querySelectorAll('[data-type]')
-                .forEach(function(block) {
+                if (!clientId) {
+                    clientId =
+                        'section-' +
+                        Date.now() +
+                        '-' +
+                        Math.random()
+                            .toString(36)
+                            .substring(2, 9);
 
-                    const type =
-                        block.getAttribute(
-                            'data-type'
+                    block.setAttribute(
+                        'data-client-id',
+                        clientId
+                    );
+                }
+
+                const sectionId =
+                    block.getAttribute('data-section-id');
+
+                /* -----------------------------------------
+                TEXT
+                ------------------------------------------ */
+
+                if (type === 'text') {
+
+                    const editor =
+                        block.querySelector('.ql-editor');
+
+                    if (editor) {
+
+                        sections.push({
+                            id: sectionId
+                                ? parseInt(sectionId)
+                                : null,
+
+                            client_id: clientId,
+
+                            type: 'text',
+
+                            content:
+                                editor.innerHTML
+                        });
+                    }
+                }
+
+                /* -----------------------------------------
+                IMAGE
+                ------------------------------------------ */
+
+                else if (type === 'image') {
+
+                    const img =
+                        block.querySelector('img');
+
+                    if (!img) {
+                        return;
+                    }
+
+                    const section = {
+                        id: sectionId
+                            ? parseInt(sectionId)
+                            : null,
+
+                        client_id: clientId,
+
+                        type: 'image'
+                    };
+
+                    if (img.dataset.localPath) {
+
+                        section.content =
+                            img.dataset.localPath;
+
+                        section.public_id =
+                            null;
+
+                    } else if (img.dataset.publicId) {
+
+                        /*
+                        * Legacy Cloudinary image.
+                        */
+                        section.content =
+                            img.src;
+
+                        section.public_id =
+                            img.dataset.publicId;
+
+                    } else {
+
+                        section.content =
+                            img.src;
+                    }
+
+                    sections.push(section);
+                }
+
+                /* -----------------------------------------
+                VIDEO
+                ------------------------------------------ */
+
+                else if (type === 'video') {
+
+                    const input =
+                        block.querySelector(
+                            'input[type="text"]'
                         );
 
-
-                    /* -----------------------------------------
-                       TEXT
-                    ------------------------------------------ */
-
-                    if (type === 'text') {
-
-                        const editor =
-                            block.querySelector(
-                                '.ql-editor'
-                            );
-
-
-                        if (editor) {
-
-                            sections.push({
-                                type: 'text',
-                                content:
-                                    editor.innerHTML
-                            });
-                        }
-                    }
-
-
-                    /* -----------------------------------------
-                       IMAGE
-                    ------------------------------------------ */
-
-                    else if (
-                        type === 'image'
+                    if (
+                        input &&
+                        input.value.trim()
                     ) {
 
-                        const img =
-                            block.querySelector(
-                                'img'
-                            );
+                        sections.push({
+                            id: sectionId
+                                ? parseInt(sectionId)
+                                : null,
 
+                            client_id: clientId,
 
-                        if (!img) {
-                            return;
-                        }
+                            type: 'video',
 
+                            content:
+                                input.value.trim()
+                        });
+                    }
+                }
 
-                        const section = {
-                            type: 'image'
-                        };
+                /* -----------------------------------------
+                GIF
+                ------------------------------------------ */
 
+                else if (type === 'gif') {
 
-                        if (
-                            img.dataset.localPath
-                        ) {
+                    const img =
+                        block.querySelector('img');
 
-                            section.content =
-                                img.dataset.localPath;
-
-                            section.public_id =
-                                null;
-
-                        } else if (
-                            img.dataset.publicId
-                        ) {
-
-                            /*
-                             * Legacy Cloudinary image.
-                             */
-                            section.content =
-                                img.src;
-
-                            section.public_id =
-                                img.dataset.publicId;
-
-                        } else {
-
-                            section.content =
-                                img.src;
-                        }
-
-
-                        sections.push(
-                            section
-                        );
+                    if (!img) {
+                        return;
                     }
 
+                    const section = {
+                        id: sectionId
+                            ? parseInt(sectionId)
+                            : null,
 
-                    /* -----------------------------------------
-                       VIDEO
-                    ------------------------------------------ */
+                        client_id: clientId,
 
-                    else if (
-                        type === 'video'
-                    ) {
+                        type: 'gif'
+                    };
 
-                        const input =
-                            block.querySelector(
-                                'input[type="text"]'
-                            );
+                    if (img.dataset.localPath) {
 
+                        section.content =
+                            img.dataset.localPath;
 
-                        if (
-                            input &&
-                            input.value.trim()
-                        ) {
+                    } else {
 
-                            sections.push({
-                                type: 'video',
-                                content:
-                                    input.value.trim()
-                            });
-                        }
+                        section.content =
+                            img.src;
                     }
 
+                    sections.push(section);
+                }
 
-                    /* -----------------------------------------
-                       GIF
-                    ------------------------------------------ */
+            });
 
-                    else if (
-                        type === 'gif'
-                    ) {
-
-                        const img =
-                            block.querySelector(
-                                'img'
-                            );
-
-
-                        if (!img) {
-                            return;
-                        }
-
-
-                        const section = {
-                            type: 'gif'
-                        };
-
-
-                        if (
-                            img.dataset.localPath
-                        ) {
-
-                            section.content =
-                                img.dataset.localPath;
-
-                        } else {
-
-                            section.content =
-                                img.src;
-                        }
-
-
-                        sections.push(
-                            section
-                        );
-                    }
-
-                });
-
-
-            return sections;
-        }
+        return sections;
+    }
 
 
         /* =====================================================

@@ -144,6 +144,8 @@ class ArticleController extends Controller
 
         $request->validate([
             'sections' => 'required|array|min:1|max:20',
+            'sections.*.id' => 'nullable|integer',
+            'sections.*.client_id' => 'nullable|string|max:100',
             'sections.*.type' => 'required|in:text,image,video,gif',
             'sections.*.content' => 'required|string|max:10000',
             'sections.*.public_id' => 'nullable|string',
@@ -152,37 +154,118 @@ class ArticleController extends Controller
         \Log::info('Saving sections', [
             'article_id' => $article->id,
             'section_count' => count($request->sections),
-            'sections_preview' => array_map(fn ($s) => [
-                'type' => $s['type'],
-                'has_public_id' => isset($s['public_id']) && ! empty($s['public_id']),
-                'public_id_value' => $s['public_id'] ?? null,
-            ], $request->sections),
         ]);
 
         $sanitizer = app(RichTextSanitizer::class);
 
-        $article->sections()->delete();
+        $savedSections = [];
 
-        foreach ($request->sections as $index => $section) {
-            $content = $section['content'];
-
+        \DB::transaction(function () use (
+            $request,
+            $article,
+            $sanitizer,
+            &$savedSections
+        ) {
             /*
-            * Only text sections contain rich HTML.
-            * Image, video and GIF content remain unchanged.
+            * Get all existing sections for this article.
             */
-            if ($section['type'] === 'text') {
-                $content = $sanitizer->sanitize($content);
+            $existingSections = $article->sections()
+                ->get()
+                ->keyBy('id');
+
+            $incomingSectionIds = [];
+
+            foreach ($request->sections as $index => $section) {
+
+                $sectionId = $section['id'] ?? null;
+
+                /*
+                * Existing section
+                */
+                if ($sectionId !== null) {
+
+                    /*
+                    * Security check:
+                    * The section must belong to this article.
+                    */
+                    $existingSection = $existingSections->get($sectionId);
+
+                    if (!$existingSection) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'sections' => [
+                                "Invalid section ID: {$sectionId}."
+                            ]
+                        ]);
+                    }
+
+                    $content = $section['content'];
+
+                    if ($section['type'] === 'text') {
+                        $content = $sanitizer->sanitize($content);
+                    }
+
+                    $existingSection->update([
+                        'type' => $section['type'],
+                        'content' => $content,
+                        'image_public_id' => $section['public_id'] ?? null,
+                        'order' => $index + 1,
+                    ]);
+
+                    $incomingSectionIds[] = $existingSection->id;
+
+                    $savedSections[] = [
+                        'client_id' => $section['client_id'] ?? null,
+                        'id' => $existingSection->id,
+                    ];
+
+                    continue;
+                }
+
+                /*
+                * New section
+                */
+                $content = $section['content'];
+
+                if ($section['type'] === 'text') {
+                    $content = $sanitizer->sanitize($content);
+                }
+
+                $newSection = $article->sections()->create([
+                    'type' => $section['type'],
+                    'content' => $content,
+                    'image_public_id' => $section['public_id'] ?? null,
+                    'order' => $index + 1,
+                ]);
+
+                $incomingSectionIds[] = $newSection->id;
+
+                $savedSections[] = [
+                    'client_id' => $section['client_id'] ?? null,
+                    'id' => $newSection->id,
+                ];
             }
 
-            $article->sections()->create([
-                'type' => $section['type'],
-                'content' => $content,
-                'image_public_id' => $section['public_id'] ?? null,
-                'order' => $index + 1,
-            ]);
-        }
+            /*
+            * Delete sections that existed in the database
+            * but are no longer present in the editor.
+            *
+            * Eloquent delete() is intentionally used so
+            * ArticleSectionObserver still runs.
+            */
+            $sectionsToDelete = $existingSections
+                ->filter(function ($section) use ($incomingSectionIds) {
+                    return !in_array($section->id, $incomingSectionIds);
+                });
 
-        return response()->json(['success' => true]);
+            foreach ($sectionsToDelete as $section) {
+                $section->delete();
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'sections' => $savedSections,
+        ]);
     }
 
     public function previewVideo(Request $request, Article $article)
