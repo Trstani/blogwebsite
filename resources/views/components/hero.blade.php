@@ -1,6 +1,7 @@
 @props(['title' => 'Latest Stories', 'subtitle' => ''])
 
 <section class="pt-10 pb-8 md:pt-14 md:pb-10">
+    
     <div class="max-w-6xl mx-auto px-6">
 
         {{-- Editorial Header --}}

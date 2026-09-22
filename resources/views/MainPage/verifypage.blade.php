@@ -619,24 +619,17 @@
 
 
                     if (data && data.success) {
-
-                        localStorage.removeItem(
-                            'otp_email'
-                        );
+                        localStorage.removeItem('otp_email');
 
                         successMessage.textContent =
-                            '✓ Email verified successfully. Redirecting to login...';
+                            '✓ Email verified successfully. Redirecting...';
 
-                        successMessage.classList.remove(
-                            'hidden'
-                        );
+                        successMessage.classList.remove('hidden');
 
                         setTimeout(() => {
-
                             window.location.href =
-                                '/auth';
-
-                        }, 2000);
+                                data.redirect || '/writer/dashboard';
+                        }, 1000);
 
                         return;
                     }

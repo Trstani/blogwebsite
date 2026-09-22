@@ -367,6 +367,13 @@
 
                     </label>
 
+                     <a
+                        href="/forgot-password"
+                        class="text-sm text-gray-500 hover:text-black transition-colors"
+                    >
+                        Forgot password?
+                    </a>
+
                 </div>
 
 

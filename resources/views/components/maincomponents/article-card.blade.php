@@ -1,61 +1,46 @@
 @props(['article'])
 
-<a href="/blog/{{ $article->slug ?? '#' }}" class="group block">
-
-    <article class="bg-white">
+<a href="/blog/{{ $article->slug ?? '#' }}" class="group block h-full">
+    <article class="flex h-full flex-col bg-white">
 
         {{-- Thumbnail --}}
         @if($article->thumbnail ?? false)
-
-            <div class="relative aspect-[16/10] overflow-hidden rounded-lg bg-gray-100">
-
+            <div class="relative aspect-[16/10] shrink-0 overflow-hidden rounded-lg bg-gray-100">
                 <img
                     src="{{ imageUrl($article->thumbnail) }}"
                     alt="{{ $article->title ?? 'Article' }}"
-                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');"
                 />
 
                 {{-- Image fallback --}}
-                <div class="hidden absolute inset-0 overflow-hidden bg-[#0f2747]">
+                <div class="absolute inset-0 hidden overflow-hidden bg-[#0f2747]">
+                    <div class="absolute -right-10 -top-10 h-32 w-32 rounded-full border border-white/10"></div>
+                    <div class="absolute -right-4 top-16 h-20 w-20 rounded-full border border-white/10"></div>
+                    <div class="absolute -bottom-12 -left-8 h-36 w-36 rounded-full border border-white/10"></div>
 
-                    <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full border border-white/10"></div>
-                    <div class="absolute -right-4 top-16 w-20 h-20 rounded-full border border-white/10"></div>
-                    <div class="absolute -left-8 -bottom-12 w-36 h-36 rounded-full border border-white/10"></div>
-
-                    <div class="relative h-full flex flex-col justify-between p-5">
-
+                    <div class="relative flex h-full flex-col justify-between p-5">
                         @if($article->category ?? false)
                             <span class="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
                                 {{ $article->category }}
                             </span>
                         @endif
 
-                        <div>
-                            <span class="block text-4xl font-bold text-white/10 uppercase">
-                                {{ substr($article->title ?? 'A', 0, 1) }}
-                            </span>
-                        </div>
-
+                        <span class="text-4xl font-bold uppercase text-white/10">
+                            {{ substr($article->title ?? 'A', 0, 1) }}
+                        </span>
                     </div>
                 </div>
-
             </div>
-
         @else
+            {{-- Editorial fallback --}}
+            <div class="relative aspect-[16/10] shrink-0 overflow-hidden rounded-lg bg-[#0f2747]">
+                <div class="absolute -right-10 -top-10 h-32 w-32 rounded-full border border-white/10"></div>
+                <div class="absolute right-6 top-12 h-16 w-16 rounded-full border border-white/10"></div>
+                <div class="absolute -bottom-12 -left-8 h-36 w-36 rounded-full border border-white/10"></div>
 
-            {{-- Editorial fallback when article has no thumbnail --}}
-            <div class="relative aspect-[16/10] overflow-hidden rounded-lg bg-[#0f2747]">
-
-                {{-- Decorative elements --}}
-                <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full border border-white/10"></div>
-                <div class="absolute right-6 top-12 w-16 h-16 rounded-full border border-white/10"></div>
-                <div class="absolute -left-8 -bottom-12 w-36 h-36 rounded-full border border-white/10"></div>
-
-                <div class="relative h-full flex flex-col justify-between p-5">
-
+                <div class="relative flex h-full flex-col justify-between p-5">
                     <div class="flex items-center justify-between">
-
                         @if($article->category ?? false)
                             <span class="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
                                 {{ $article->category }}
@@ -65,66 +50,47 @@
                         <span class="text-xs text-white/30">
                             ARTICLE
                         </span>
-
                     </div>
 
                     <div>
-
-                        <span class="block text-5xl font-bold text-white/10 uppercase leading-none">
+                        <span class="block text-5xl font-bold uppercase leading-none text-white/10">
                             {{ substr($article->title ?? 'A', 0, 1) }}
                         </span>
-
                         <div class="mt-2 h-px w-10 bg-white/30"></div>
-
                     </div>
-
                 </div>
-
             </div>
-
         @endif
 
-
         {{-- Content --}}
-        <div class="pt-4">
+        <div class="flex flex-1 flex-col pt-3">
 
             {{-- Category --}}
             @if($article->category ?? false)
-
-                <span class="text-[10px] font-semibold text-[#0f2747] uppercase tracking-[0.16em]">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0f2747]">
                     {{ $article->category }}
                 </span>
-
             @endif
 
-
             {{-- Title --}}
-            <h3 class="mt-1.5 text-lg font-semibold text-black leading-snug group-hover:text-[#0f2747] transition-colors">
+            <h3 class="mt-1 min-h-[3.25rem] text-lg font-semibold leading-snug text-black transition-colors group-hover:text-[#0f2747]">
                 {{ $article->title ?? 'Article Title' }}
             </h3>
 
-
             {{-- Description --}}
             @if($article->description ?? false)
-
-                <p class="mt-2 text-sm text-gray-500 leading-relaxed line-clamp-2">
+                <p class="mt-1.5 line-clamp-2 text-sm leading-relaxed text-gray-500">
                     {{ $article->description }}
                 </p>
-
             @endif
 
-
             {{-- Meta --}}
-            <div class="mt-3 flex items-center justify-between gap-3">
-
-                <div class="flex items-center gap-2 text-xs text-gray-400 min-w-0">
-
+            <div class="mt-auto flex items-center justify-between gap-3 pt-3">
+                <div class="flex min-w-0 items-center gap-2 text-xs text-gray-400">
                     @if($article->author ?? false)
-
-                        <span class="font-medium text-gray-600 truncate">
+                        <span class="truncate font-medium text-gray-600">
                             {{ $article->author }}
                         </span>
-
                     @endif
 
                     @if(($article->author ?? false) && ($article->date ?? false))
@@ -132,25 +98,18 @@
                     @endif
 
                     @if($article->date ?? false)
-
                         <span class="whitespace-nowrap">
                             {{ $article->date }}
                         </span>
-
                     @endif
-
                 </div>
 
-
                 {{-- Read indicator --}}
-                <span class="flex-shrink-0 text-xs font-medium text-gray-300 group-hover:text-[#0f2747] transition-colors">
+                <span class="shrink-0 text-xs font-medium text-gray-300 transition-colors group-hover:text-[#0f2747]">
                     Read →
                 </span>
-
             </div>
 
         </div>
-
     </article>
-
 </a>

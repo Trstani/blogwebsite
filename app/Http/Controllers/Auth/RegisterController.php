@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Mail\SendOtpMail;
+use App\Models\PendingRegistration;
 use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class RegisterController extends Controller
@@ -18,7 +20,7 @@ class RegisterController extends Controller
     /**
      * Handle user registration - Generate and send OTP
      */
-    public function register(Request $request)
+   public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -34,13 +36,22 @@ class RegisterController extends Controller
             ], 422);
         }
 
-        // Create user with unverified status
-        $user = User::create([
+        $email = strtolower(trim($request->email));
+
+        // Replace any existing pending registration for this email
+        PendingRegistration::where('email', $email)->delete();
+
+        // Remove any previous registration OTP
+        OtpCode::where('email', $email)
+            ->where('type', 'registration')
+            ->delete();
+
+        // Store registration data temporarily until OTP is verified
+        $pendingRegistration = PendingRegistration::create([
             'name' => $request->name,
-            'email' => $request->email,
+            'email' => $email,
             'password' => Hash::make($request->password),
-            'slug' => Str::slug($request->name) . '-' . Str::lower(Str::random(6)),
-            'email_verified_at' => null,
+            'expires_at' => now()->addMinutes(10),
         ]);
 
         // Generate 6-digit OTP
@@ -51,33 +62,34 @@ class RegisterController extends Controller
             STR_PAD_LEFT
         );
 
-        // Save OTP to otp_codes table
+        // Save registration OTP
         OtpCode::create([
-            'email' => $user->email,
+            'email' => $email,
+            'type' => 'registration',
             'code' => $otp,
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        // Measure how long the SMTP send operation takes
+        // Measure SMTP send duration
         $startTime = microtime(true);
 
-        Mail::to($user->email)->send(
-            new SendOtpMail($otp, $user->name)
+        Mail::to($email)->send(
+            new SendOtpMail(
+                $otp,$pendingRegistration->name,'registration')
         );
 
         $duration = microtime(true) - $startTime;
 
         Log::info('OTP email sent during registration', [
-            'user_id' => $user->id,
-            'email' => $user->email,
+            'email' => $email,
             'duration_seconds' => round($duration, 3),
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Registration successful. OTP sent to your email.',
-            'user_id' => $user->id,
-            'email' => $user->email,
+            'user_id' => null,
+            'email' => $email,
         ]);
     }
 
@@ -87,7 +99,7 @@ class RegisterController extends Controller
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'otp' => 'required|string|size:6',
         ]);
 
@@ -99,8 +111,36 @@ class RegisterController extends Controller
             ], 422);
         }
 
-        // Check OTP in database
-        $otpRecord = OtpCode::where('email', $request->email)
+        $email = strtolower(trim($request->email));
+
+        // Find pending registration
+        $pendingRegistration = PendingRegistration::where('email', $email)
+            ->first();
+
+        if (! $pendingRegistration) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration data not found or has expired.',
+            ], 422);
+        }
+
+        // Check pending registration expiration
+        if ($pendingRegistration->isExpired()) {
+            $pendingRegistration->delete();
+
+            OtpCode::where('email', $email)
+                ->where('type', 'registration')
+                ->delete();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration session has expired. Please register again.',
+            ], 422);
+        }
+
+        // Check registration OTP
+        $otpRecord = OtpCode::where('email', $email)
+            ->where('type', 'registration')
             ->where('code', $request->otp)
             ->where('expires_at', '>', now())
             ->first();
@@ -112,43 +152,92 @@ class RegisterController extends Controller
             ], 422);
         }
 
-        // Verify user email
-        $user = User::where('email', $request->email)->first();
+        // Safety check: prevent duplicate user creation
+        if (User::where('email', $email)->exists()) {
+            $pendingRegistration->delete();
+            $otpRecord->delete();
 
-        $user->update([
+            return response()->json([
+                'success' => false,
+                'message' => 'Email sudah terdaftar. Silakan login.',
+            ], 422);
+        }
+
+        // Create the actual user only after successful OTP verification
+        $user = User::create([
+            'name' => $pendingRegistration->name,
+            'email' => $pendingRegistration->email,
+            'password' => $pendingRegistration->password,
+            'role' => 'writer',
+            'slug' => Str::slug($pendingRegistration->name) . '-' . Str::lower(Str::random(6)),
             'email_verified_at' => now(),
         ]);
 
-        // Delete used OTP
+        // Remove temporary registration and used OTP
+        $pendingRegistration->delete();
         $otpRecord->delete();
+
+        // Automatically login verified user
+        Auth::login($user);
+
+        $request->session()->regenerate();
 
         return response()->json([
             'success' => true,
-            'message' => 'Email verified successfully. You can now login.',
+            'message' => 'Email verified successfully.',
             'user_id' => $user->id,
+            'redirect' => '/writer/dashboard',
         ]);
     }
 
     /**
      * Resend OTP
      */
-    public function resendOtp(Request $request)
+   public function resendOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'User not found',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $email = strtolower(trim($request->email));
 
-        // Delete old OTP
-        OtpCode::where('email', $user->email)->delete();
+        // Find pending registration
+        $pendingRegistration = PendingRegistration::where('email', $email)
+            ->first();
+
+        if (! $pendingRegistration) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration data not found or has expired.',
+            ], 422);
+        }
+
+        // Check registration expiration
+        if ($pendingRegistration->isExpired()) {
+            $pendingRegistration->delete();
+
+            OtpCode::where('email', $email)
+                ->where('type', 'registration')
+                ->delete();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration session has expired. Please register again.',
+            ], 422);
+        }
+
+        // Delete old registration OTP
+        OtpCode::where('email', $email)
+            ->where('type', 'registration')
+            ->delete();
 
         // Generate new OTP
         $otp = str_pad(
@@ -159,23 +248,28 @@ class RegisterController extends Controller
         );
 
         OtpCode::create([
-            'email' => $user->email,
+            'email' => $email,
+            'type' => 'registration',
             'code' => $otp,
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        // Measure how long the SMTP send operation takes
+        $pendingRegistration->update([
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        // Measure SMTP send duration
         $startTime = microtime(true);
 
-        Mail::to($user->email)->send(
-            new SendOtpMail($otp, $user->name)
+        Mail::to($email)->send(
+            new SendOtpMail(
+                $otp,$pendingRegistration->name,'registration')
         );
 
         $duration = microtime(true) - $startTime;
 
         Log::info('OTP email resent', [
-            'user_id' => $user->id,
-            'email' => $user->email,
+            'email' => $email,
             'duration_seconds' => round($duration, 3),
         ]);
 
@@ -184,4 +278,4 @@ class RegisterController extends Controller
             'message' => 'OTP resent to your email',
         ]);
     }
-}
+}    

@@ -8,7 +8,7 @@
             <img
                 src="{{ asset('logo/createeve.png') }}"
                 alt="Create Eve"
-                class="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                class="h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
             >
         </a>
 

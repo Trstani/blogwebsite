@@ -341,3 +341,21 @@ Route::middleware('auth')->group(function () {
         [FileUploadController::class, 'uploadGif']
     )->name('local.upload.gif');
 });
+
+Route::get('/about', function () {
+    $featured = Article::where('status', 'published')
+        ->where('is_featured', true)
+        ->with('category', 'author')
+        ->latest('updated_at')
+        ->first();
+
+    $articles = Article::where('status', 'published')
+        ->where('is_featured', true)
+        ->when($featured, fn($q) => $q->where('id', '!=', $featured->id))
+        ->with('category', 'author')
+        ->latest()
+        ->take(4)
+        ->get();
+
+    return view('MainPage.about', compact('featured', 'articles'));
+})->name('about');

@@ -14,16 +14,17 @@ class SendOtpMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $otp;
-
     public string $userName;
+    public string $type;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct(string $otp, string $userName)
-    {
+    public function __construct(
+        string $otp,
+        string $userName,
+        string $type = 'registration'
+    ) {
         $this->otp = $otp;
         $this->userName = $userName;
+        $this->type = $type;
     }
 
     /**
@@ -32,7 +33,9 @@ class SendOtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your OTP Verification Code',
+            subject: $this->type === 'password_reset'
+                ? 'Your Password Reset Code'
+                : 'Your OTP Verification Code',
         );
     }
 
@@ -46,6 +49,7 @@ class SendOtpMail extends Mailable
             with: [
                 'otp' => $this->otp,
                 'userName' => $this->userName,
+                'type' => $this->type,
             ],
         );
     }

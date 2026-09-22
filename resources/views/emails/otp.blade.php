@@ -67,14 +67,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Email Verification</h1>
+            <h1>
+                {{ $type === 'password_reset'
+                    ? 'Password Reset'
+                    : 'Email Verification' }}
+            </h1>
         </div>
 
         <p>Hi <strong>{{ $userName }}</strong>,</p>
 
-        <p>Thank you for registering with {{ config('app.name') }}. To complete your registration, please verify your email address using the OTP code below:</p>
+       @if ($type === 'password_reset')
+            <p>We received a request to reset the password for your {{ config('app.name') }} account. Please use the OTP code below to continue:</p>
+        @else
+            <p>Thank you for registering with {{ config('app.name') }}. To complete your registration, please verify your email address using the OTP code below:</p>
+        @endif
 
-        <div class="otp-section">
+       <div class="otp-section">
             <p style="margin: 0 0 10px 0; color: #666;">Your OTP Code:</p>
             <div class="otp-code">{{ $otp }}</div>
         </div>
@@ -83,8 +91,12 @@
             <strong>Important:</strong> This code expires in <strong>10 minutes</strong>. Please enter it in the verification form as soon as possible.
         </div>
 
-        <p style="color: #666;">If you didn't request this email, please ignore it. Your account will not be created until you verify your email.</p>
-
+       @if ($type === 'password_reset')
+            <p style="color: #666;">If you didn't request a password reset, please ignore this email. Your password will not be changed unless you complete the reset process.</p>
+        @else
+            <p style="color: #666;">If you didn't request this email, please ignore it. Your account will not be created until you verify your email.</p>
+        @endif
+        
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
 
         <div class="footer">
