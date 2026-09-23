@@ -77,14 +77,14 @@
 
                 <div class="mt-4 space-y-3">
                     <a
-                        href="/legal"
+                        href="{{ route('legal-notice') }}"
                         class="block text-sm text-gray-600 transition-colors hover:text-black"
                     >
                         Legal Notice
                     </a>
 
                     <a
-                        href="/privacy"
+                        href="{{ route('privacy-policy') }}"
                         class="block text-sm text-gray-600 transition-colors hover:text-black"
                     >
                         Privacy Policy
@@ -101,28 +101,96 @@
                         Main Editorial Office
                     </h4>
 
-                    <div class="mt-3 text-sm leading-relaxed">
-                        <p class="font-semibold text-gray-900">
-                            Indonesia
-                        </p>
+                    <div class="mt-3 space-y-3 text-sm text-gray-600">
 
-                        <div class="mt-2.5 space-y-2.5 text-gray-600">
-                            <p>
+                        {{-- Jakarta --}}
+                        <div class="flex items-start gap-2.5">
+                            <svg
+                                class="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 21s7-5.25 7-11a7 7 0 1 0-14 0c0 5.75 7 11 7 11Z"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="2.25"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            <p class="leading-relaxed">
                                 Jakarta Garden City, Jalan Matana 3 No.50,<br>
                                 Cakung Timur, Jakarta Timur,<br>
                                 DKI Jakarta 13910
                             </p>
+                        </div>
 
-                            <p>
+                        {{-- Jambi --}}
+                        <div class="flex items-start gap-2.5">
+                            <svg
+                                class="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 21s7-5.25 7-11a7 7 0 1 0-14 0c0 5.75 7 11 7 11Z"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="2.25"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            <p class="leading-relaxed">
                                 Jl. Elang 1, Talang Jauh,<br>
                                 Jelutung, Jambi
                             </p>
+                        </div>
 
-                            <p>
+                        {{-- Tangerang --}}
+                        <div class="flex items-start gap-2.5">
+                            <svg
+                                class="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 21s7-5.25 7-11a7 7 0 1 0-14 0c0 5.75 7 11 7 11Z"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="2.25"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            <p class="leading-relaxed">
                                 Paddington Heights, Alam Sutera,<br>
                                 Tangerang, Banten
                             </p>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -134,61 +202,197 @@
                 </h3>
 
                 <div class="mt-4 space-y-3">
-                    <a
-                        href="tel:08888111881"
-                        class="block text-sm text-gray-600 transition-colors hover:text-black"
-                    >
-                        08888-111-881
-                    </a>
 
-                    <a
-                        href="mailto:admin@dinamikapublika.id"
-                        class="block text-sm text-gray-600 transition-colors hover:text-black"
+                {{-- Phone --}}
+                <a
+                    href="tel:08888111881"
+                    class="group flex items-center gap-2.5 text-sm text-gray-600 transition-colors hover:text-black"
+                >
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 text-cyan-500 transition-colors group-hover:text-black"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
                     >
-                        admin@create-eve.com
-                    </a>
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.7"
+                            d="M5 4.5A1.5 1.5 0 0 1 6.5 3h2l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4 1.5v2A1.5 1.5 0 0 1 17.5 17C10.596 17 5 11.404 5 4.5Z"
+                        />
+                    </svg>
 
-                    <span class="block text-sm text-gray-600">
-                        08:00 AM - 07:00 PM
-                    </span>
+                    <span>+62 8888-111-881</span>
+                </a>
+
+                {{-- Email --}}
+                <a
+                    href="mailto:admin@dinamikapublika.id"
+                    class="group flex items-center gap-2.5 text-sm text-gray-600 transition-colors hover:text-black"
+                >
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 text-cyan-500 transition-colors group-hover:text-black"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <rect
+                            x="3"
+                            y="5"
+                            width="18"
+                            height="14"
+                            rx="2"
+                            stroke-width="1.7"
+                        />
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.7"
+                            d="m4 7 8 6 8-6"
+                        />
+                    </svg>
+
+                    <span>admin@create-eve.com</span>
+                </a>
+
+                {{-- Office Hours --}}
+                <div class="flex items-center gap-2.5 text-sm text-gray-600">
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 text-cyan-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="8.5"
+                            stroke-width="1.7"
+                        />
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.7"
+                            d="M12 7v5l3 2"
+                        />
+                    </svg>
+
+                    <span>08:00 AM - 07:00 PM</span>
                 </div>
 
-                {{-- Editorial Offices --}}
+            </div>
+
+               {{-- Editorial Offices --}}
                 <div class="mt-7">
                     <h4 class="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
                         Editorial Offices
                     </h4>
 
-                    <div class="mt-3 text-sm leading-relaxed">
+                    <div class="mt-3 space-y-3 text-sm text-gray-600">
 
-                        <div>
-                            <p class="font-semibold text-gray-900">
-                                Australia
-                            </p>
-                            <p class="mt-1 text-gray-600">
-                                The Oak Building, 253 Waverley Road<br>
-                                Malvern East Victoria, 3154.
-                            </p>
+                        {{-- Australia --}}
+                        <div class="flex items-start gap-2.5">
+                            <svg
+                                class="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 21s7-5.25 7-11a7 7 0 1 0-14 0c0 5.75 7 11 7 11Z"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="2.25"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            <div>
+                                <p class="font-semibold text-gray-900">
+                                    Australia
+                                </p>
+                                <p class="mt-1 leading-relaxed">
+                                    The Oak Building, 253 Waverley Road<br>
+                                    Malvern East Victoria, 3154.
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="mt-3.5">
-                            <p class="font-semibold text-gray-900">
-                                Malaysia
-                            </p>
-                            <p class="mt-1 text-gray-600">
-                                Jalan Batai 7, Taman Sri Pulai,<br>
-                                Johor Bahru 81110.
-                            </p>
+                        {{-- Malaysia --}}
+                        <div class="flex items-start gap-2.5">
+                            <svg
+                                class="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 21s7-5.25 7-11a7 7 0 1 0-14 0c0 5.75 7 11 7 11Z"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="2.25"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            <div>
+                                <p class="font-semibold text-gray-900">
+                                    Malaysia
+                                </p>
+                                <p class="mt-1 leading-relaxed">
+                                    Jalan Batai 7, Taman Sri Pulai,<br>
+                                    Johor Bahru 81110.
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="mt-3.5">
-                            <p class="font-semibold text-gray-900">
-                                Singapore
-                            </p>
-                            <p class="mt-1 text-gray-600">
-                                Building 504 Woodland Drive 14 #03 130,<br>
-                                Block 504, 730504.
-                            </p>
+                        {{-- Singapore --}}
+                        <div class="flex items-start gap-2.5">
+                            <svg
+                                class="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 21s7-5.25 7-11a7 7 0 1 0-14 0c0 5.75 7 11 7 11Z"
+                                />
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="2.25"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            <div>
+                                <p class="font-semibold text-gray-900">
+                                    Singapore
+                                </p>
+                                <p class="mt-1 leading-relaxed">
+                                    Building 504 Woodland Drive 14 #03 130,<br>
+                                    Block 504, 730504.
+                                </p>
+                            </div>
                         </div>
 
                     </div>

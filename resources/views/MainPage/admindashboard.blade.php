@@ -413,7 +413,73 @@
             </div>
         @endif
 
+        {{-- Legal Pages --}}
+        @if(auth()->user()->role === 'admin' || auth()->user()->role === 'super_admin')
+            <div class="bg-white rounded-lg border border-gray-100 p-6 mb-8">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                            Legal Pages
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Manage the website's legal and privacy documents.
+                        </p>
+                    </div>
+
+                    <span class="text-[10px] font-medium text-[#159AA3] bg-cyan-50 px-2.5 py-1 rounded-full">
+                        Admin Only
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                    {{-- Privacy Policy --}}
+                    <a
+                        href="{{ route('admin.legal-pages.edit', 'privacy_policy') }}"
+                        class="group flex items-center justify-between border border-gray-100 rounded-lg p-4 hover:border-cyan-200 hover:bg-cyan-50/30 transition-all"
+                    >
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900 group-hover:text-[#159AA3] transition-colors">
+                                Privacy Policy
+                            </p>
+
+                            <p class="mt-1 text-xs text-gray-400">
+                                Manage privacy and data protection information.
+                            </p>
+                        </div>
+
+                        <span class="text-lg text-gray-300 group-hover:text-[#159AA3] transition-colors">
+                            →
+                        </span>
+                    </a>
+
+                    {{-- Legal Notice --}}
+                    <a
+                        href="{{ route('admin.legal-pages.edit', 'legal_notice') }}"
+                        class="group flex items-center justify-between border border-gray-100 rounded-lg p-4 hover:border-cyan-200 hover:bg-cyan-50/30 transition-all"
+                    >
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900 group-hover:text-[#159AA3] transition-colors">
+                                Legal Notice
+                            </p>
+
+                            <p class="mt-1 text-xs text-gray-400">
+                                Manage legal information and website notices.
+                            </p>
+                        </div>
+
+                        <span class="text-lg text-gray-300 group-hover:text-[#159AA3] transition-colors">
+                            →
+                        </span>
+                    </a>
+
+                </div>
+            </div>
+        @endif
+
     </div>
+        
+
     {{-- Reject Modal --}}
         <div id="rejectModal" class="hidden fixed inset-0 z-50 items-center justify-center">
             <div class="absolute inset-0 bg-black/40" onclick="closeRejectModal()"></div>

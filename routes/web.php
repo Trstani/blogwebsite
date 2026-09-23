@@ -4,6 +4,7 @@ use App\Helpers\ImageHelper;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\FileUploadController;
+use App\Http\Controllers\Admin\LegalPageController;
 use App\Jobs\DeleteCloudinaryImageJob;
 use App\Models\Article;
 use App\Models\Category;
@@ -359,3 +360,29 @@ Route::get('/about', function () {
 
     return view('MainPage.about', compact('featured', 'articles'));
 })->name('about');
+
+Route::get('/privacy-policy', function () {
+    $legalPage = \App\Models\LegalPage::where('type', 'privacy_policy')
+        ->firstOrFail();
+
+    return view('MainPage.legalpage', compact('legalPage'));
+})->name('privacy-policy');
+
+Route::get('/legal-notice', function () {
+    $legalPage = \App\Models\LegalPage::where('type', 'legal_notice')
+        ->firstOrFail();
+
+    return view('MainPage.legalpage', compact('legalPage'));
+})->name('legal-notice');
+
+Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    Route::get(
+        '/legal-pages/{type}/edit',
+        [LegalPageController::class, 'edit']
+    )->name('legal-pages.edit');
+
+    Route::put(
+        '/legal-pages/{type}',
+        [LegalPageController::class, 'update']
+    )->name('legal-pages.update');
+});
