@@ -342,7 +342,7 @@ Route::middleware('auth')->group(function () {
         [FileUploadController::class, 'uploadGif']
     )->name('local.upload.gif');
 });
-
+/*
 Route::get('/about', function () {
     $featured = Article::where('status', 'published')
         ->where('is_featured', true)
@@ -360,7 +360,7 @@ Route::get('/about', function () {
 
     return view('MainPage.about', compact('featured', 'articles'));
 })->name('about');
-
+*/
 Route::get('/privacy-policy', function () {
     $legalPage = \App\Models\LegalPage::where('type', 'privacy_policy')
         ->firstOrFail();

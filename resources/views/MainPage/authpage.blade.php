@@ -238,6 +238,41 @@
            RESPONSIVE
            ========================================================= */
 
+           .mobile-auth-switch {
+                display: none;
+            }
+
+            @media (max-width: 640px) {
+
+                .mobile-auth-switch {
+                    display: block;
+                    margin-top: 20px;
+                    text-align: center;
+                }
+
+                .overlay {
+                    display: none;
+                }
+
+                .panel-login {
+                    width: 100%;
+                    left: 0;
+                }
+
+                .panel-register {
+                    width: 100%;
+                    right: -100%;
+                    left: auto;
+                }
+
+                .auth-container.active-register .panel-login {
+                    left: -100%;
+                }
+
+                .auth-container.active-register .panel-register {
+                    right: 0;
+                }
+            }
         @media (max-width: 800px) {
 
             .auth-container {
@@ -386,6 +421,19 @@
 
             </form>
 
+            {{-- Mobile: Go to Register --}}
+            <div class="mobile-auth-switch">
+                <p class="text-sm text-gray-500">
+                    Don't have an account?
+                    <button
+                        type="button"
+                        onclick="toggleAuth()"
+                        class="font-semibold text-black hover:underline"
+                    >
+                        Create Account
+                    </button>
+                </p>
+            </div>
 
             @if ($errors->any())
 
@@ -501,6 +549,23 @@
                 </button>
 
             </form>
+
+            {{-- Mobile: Go to Login --}}
+            <div class="mobile-auth-switch">
+                <p class="text-sm text-gray-500">
+                    Already have an account?
+                    <button
+                        type="button"
+                        onclick="toggleAuth()"
+                        class="font-semibold text-black hover:underline"
+                    >
+                        Sign In
+                    </button>
+                </p>
+            </div>
+
+            <div
+                id="registerError"
 
 
             <div
