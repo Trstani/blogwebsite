@@ -58,6 +58,12 @@ class Article extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    // Artikel punya banyak tags
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'article_tag');
+    }
+
     // Scope: cuma article yang published
     public function scopePublished($query)
     {

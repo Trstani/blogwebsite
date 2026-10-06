@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\LegalPageController;
 use App\Jobs\DeleteCloudinaryImageJob;
 use App\Models\Article;
 use App\Models\Category;
+use App\Models\Tag;
 use App\Models\User;
 use App\Services\LocalFileStorageService;
 use Carbon\Carbon;
@@ -23,16 +24,32 @@ use Illuminate\Support\Facades\Route;
 
 // Homepage
 Route::get('/', function () {
-    $featured = Article::where('status', 'published')
+    $search = request('search', '');
+
+    // Featured articles query
+    $featuredQuery = Article::where('status', 'published')
         ->where('is_featured', true)
-        ->with('category', 'author')
+        ->with('category', 'author');
+    
+    if ($search) {
+        $featuredQuery->where('title', 'like', "%{$search}%");
+    }
+    
+    $featured = $featuredQuery
         ->latest('updated_at')
         ->first();
 
-    $articles = Article::where('status', 'published')
+    // Additional featured articles
+    $articlesQuery = Article::where('status', 'published')
         ->where('is_featured', true)
         ->when($featured, fn ($q) => $q->where('id', '!=', $featured->id))
-        ->with('category', 'author')
+        ->with('category', 'author');
+    
+    if ($search) {
+        $articlesQuery->where('title', 'like', "%{$search}%");
+    }
+    
+    $articles = $articlesQuery
         ->latest()
         ->take(4)
         ->get();
@@ -49,13 +66,31 @@ Route::get('/', function () {
         ->take(6)
         ->get();
 
+    $mostDiscussedArticles = Article::where('status', 'published')
+        ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
+        ->with('category', 'author')
+        ->orderByDesc('discussion_count')
+        ->take(5)
+        ->get();
+
+    // Popular topics (tags by article count - published only)
+    $popularTags = Tag::withCount(['articles' => function ($q) {
+        $q->where('status', 'published');
+    }])
+    ->orderByDesc('articles_count')
+    ->take(6)
+    ->get();
+
     return view(
         'MainPage.homepage',
         compact(
             'featured',
             'articles',
             'trendingArticles',
-            'recentArticles'
+            'recentArticles',
+            'mostDiscussedArticles',
+            'popularTags',
+            'search'
         )
     );
 })->name('home');
@@ -68,10 +103,30 @@ Route::get('/auth', function () {
 
 
 // Explore page
-Route::get('/explore', function () {
-    $articles = Article::where('status', 'published')
-        ->with('category', 'author')
-        ->get()
+Route::get('/explore', function (Request $request) {
+    $articlesQuery = Article::where('status', 'published')
+        ->with('category', 'author', 'tags');
+
+    // Filter by tag if provided
+    $activeTag = null;
+    $tagSlug = $request->query('tag');
+    
+    if ($tagSlug) {
+        $activeTag = Tag::where('slug', $tagSlug)->firstOrFail();
+        $articlesQuery->whereHas('tags', function ($query) use ($tagSlug) {
+            $query->where('slug', $tagSlug);
+        });
+    }
+
+    // Filter by category if provided (server-side)
+    $categorySlug = $request->query('category');
+    if ($categorySlug && $categorySlug !== 'all') {
+        $articlesQuery->whereHas('category', function ($query) use ($categorySlug) {
+            $query->where('slug', $categorySlug);
+        });
+    }
+
+    $articles = $articlesQuery->get()
         ->map(fn ($a) => (object) [
             'id' => $a->id,
             'title' => $a->title,
@@ -92,7 +147,7 @@ Route::get('/explore', function () {
 
     return view(
         'MainPage.explorepage',
-        compact('articles', 'categories')
+        compact('articles', 'categories', 'activeTag')
     );
 })->name('explore');
 
@@ -131,6 +186,7 @@ Route::get('/blog/{slug}', function ($slug) {
             'sections',
             'category',
             'author',
+            'tags',
             'comments.user',
             'comments.replies.user'
         )

@@ -149,6 +149,8 @@ class ArticleController extends Controller
             'sections.*.type' => 'required|in:text,image,video,gif',
             'sections.*.content' => 'required|string|max:10000',
             'sections.*.public_id' => 'nullable|string',
+            'tag_ids' => 'nullable|array|max:10',
+            'tag_ids.*' => 'integer|exists:tags,id',
         ]);
 
         \Log::info('Saving sections', [
@@ -260,6 +262,13 @@ class ArticleController extends Controller
             foreach ($sectionsToDelete as $section) {
                 $section->delete();
             }
+
+            /*
+            * Sync tags with the article.
+            * tag_ids are nullable (optional), defaults to empty array.
+            */
+            $tagIds = $request->tag_ids ?? [];
+            $article->tags()->sync($tagIds);
         });
 
         return response()->json([
@@ -397,6 +406,11 @@ class ArticleController extends Controller
             'category_id' => $article->category_id,
             'cover_image' => $article->cover_image,
             'status' => $article->status,
+            'tags' => $article->tags->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'slug' => $t->slug,
+            ])->toArray(),
             'sections' => $sections->map(fn ($s) => [
                 'id' => $s->id,
                 'type' => $s->type,

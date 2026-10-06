@@ -503,6 +503,53 @@
                 oninput="autoResize(this); markDirty();"
             ></textarea>
 
+            {{-- Tags Section --}}
+            <div class="mt-6 pt-6 border-t border-gray-100">
+
+                <div class="flex items-center justify-between mb-3">
+
+                    <label class="text-sm font-medium text-gray-700">
+                        Tags (Optional)
+                        <span class="text-xs text-gray-500 font-normal ml-1" id="tagCount">
+                            0 / 10
+                        </span>
+                    </label>
+
+                </div>
+
+                {{-- Selected Tags Container --}}
+                <div
+                    id="selectedTagsContainer"
+                    class="flex flex-wrap gap-2 mb-3 min-h-8"
+                >
+                    {{-- Selected tags will be rendered here --}}
+                </div>
+
+                {{-- Add Tags Button --}}
+                <button
+                    type="button"
+                    id="openTagSelectorBtn"
+                    onclick="openTagSelector()"
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-md text-gray-600 hover:border-gray-400 hover:text-gray-800 transition-colors inline-flex items-center gap-1"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 4v16m8-8H4"
+                        />
+                    </svg>
+                    Select Tags
+                </button>
+
+            </div>
+
         </div>
 
 
@@ -744,6 +791,11 @@
         let isSaving = false;
         let autoSaveTimer = null;
         let submitModalState = 'confirm';
+
+        // Tag selector state
+        let selectedTagIds = [];
+        let availableTags = [];
+        let filteredTags = [];
 
 
         /* =====================================================
@@ -1027,6 +1079,11 @@
                             'articleCategoryId'
                         ) || '1';
 
+                    // Initialize tag state for new article
+                    selectedTagIds = [];
+                    loadAvailableTags().then(() => {
+                        renderSelectedTags();
+                    });
 
                     const titleEl =
                         document.getElementById(
@@ -2752,6 +2809,261 @@
 
 
         /* =====================================================
+           TAG SELECTOR FUNCTIONS
+        ====================================================== */
+
+        async function loadAvailableTags() {
+
+            try {
+                const response = await fetch(
+                    '/writer/tags',
+                    {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken()
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (data.success) {
+                    availableTags = data.tags || [];
+                    filteredTags = [...availableTags];
+                } else {
+                    console.error('Failed to load tags:', data.error);
+                    availableTags = [];
+                    filteredTags = [];
+                }
+            } catch (err) {
+                console.error('Error loading tags:', err);
+                availableTags = [];
+                filteredTags = [];
+            }
+        }
+
+
+        function openTagSelector() {
+
+            if (selectedTagIds.length >= 10) {
+                alert('Maximum 10 tags per article');
+                return;
+            }
+
+            loadAvailableTags().then(() => {
+                renderTagsInModal();
+                
+                const searchInput = document.getElementById(
+                    'tagSearchInput'
+                );
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+
+                const modal = document.getElementById(
+                    'tagSelectorModal'
+                );
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            });
+        }
+
+
+        function closeTagSelector() {
+
+            const modal = document.getElementById(
+                'tagSelectorModal'
+            );
+
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            const searchInput = document.getElementById(
+                'tagSearchInput'
+            );
+            if (searchInput) {
+                searchInput.value = '';
+            }
+        }
+
+
+        function renderTagsInModal() {
+
+            const container = document.getElementById(
+                'tagsListContainer'
+            );
+
+            if (!container) {
+                return;
+            }
+
+            container.innerHTML = '';
+
+            const tagsToRender = filteredTags.length > 0 
+                ? filteredTags 
+                : availableTags;
+
+            if (tagsToRender.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No tags available</p>';
+                return;
+            }
+
+            tagsToRender.forEach(tag => {
+                const isSelected = selectedTagIds.includes(tag.id);
+
+                const tagElement = document.createElement('div');
+                tagElement.className = 'flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer';
+                tagElement.innerHTML = `
+                    <input
+                        type="checkbox"
+                        id="tag-${tag.id}"
+                        ${isSelected ? 'checked' : ''}
+                        onchange="toggleTagInModal(${tag.id})"
+                        class="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                    >
+                    <label
+                        for="tag-${tag.id}"
+                        class="flex-1 text-sm text-gray-700 cursor-pointer"
+                    >
+                        ${escapeHtml(tag.name)}
+                    </label>
+                `;
+                container.appendChild(tagElement);
+            });
+        }
+
+
+        function filterTagsInModal() {
+
+            const searchInput = document.getElementById(
+                'tagSearchInput'
+            );
+
+            if (!searchInput) {
+                return;
+            }
+
+            const query = searchInput.value.toLowerCase().trim();
+
+            if (!query) {
+                filteredTags = [...availableTags];
+            } else {
+                filteredTags = availableTags.filter(tag =>
+                    tag.name.toLowerCase().includes(query) ||
+                    tag.slug.toLowerCase().includes(query)
+                );
+            }
+
+            renderTagsInModal();
+        }
+
+
+        function toggleTagInModal(tagId) {
+
+            const checkbox = document.getElementById(
+                `tag-${tagId}`
+            );
+
+            if (!checkbox) {
+                return;
+            }
+
+            if (checkbox.checked) {
+                if (selectedTagIds.length >= 10) {
+                    checkbox.checked = false;
+                    alert('Maximum 10 tags per article');
+                    return;
+                }
+                if (!selectedTagIds.includes(tagId)) {
+                    selectedTagIds.push(tagId);
+                }
+            } else {
+                selectedTagIds = selectedTagIds.filter(id => id !== tagId);
+            }
+        }
+
+
+        function applyTagSelection() {
+
+            closeTagSelector();
+            renderSelectedTags();
+            markDirty();
+        }
+
+
+        function renderSelectedTags() {
+
+            const container = document.getElementById(
+                'selectedTagsContainer'
+            );
+
+            if (!container) {
+                return;
+            }
+
+            container.innerHTML = '';
+
+            const tagCountEl = document.getElementById(
+                'tagCount'
+            );
+            if (tagCountEl) {
+                tagCountEl.textContent = `${selectedTagIds.length} / 10`;
+            }
+
+            selectedTagIds.forEach(tagId => {
+                const tag = availableTags.find(t => t.id === tagId);
+                
+                if (!tag) {
+                    return;
+                }
+
+                const tagPill = document.createElement('div');
+                tagPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm text-gray-700';
+                tagPill.innerHTML = `
+                    <span>${escapeHtml(tag.name)}</span>
+                    <button
+                        type="button"
+                        onclick="removeTag(${tag.id})"
+                        class="text-gray-400 hover:text-gray-600 p-0 leading-none"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                `;
+                container.appendChild(tagPill);
+            });
+        }
+
+
+        function removeTag(tagId) {
+
+            selectedTagIds = selectedTagIds.filter(id => id !== tagId);
+            renderSelectedTags();
+            markDirty();
+        }
+
+
+        function escapeHtml(text) {
+
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+
+        /* =====================================================
            SAVE ARTICLE DATA
         ====================================================== */
 
@@ -2810,7 +3122,8 @@
                         body: JSON.stringify({
                             title: title,
                             description: description,
-                            sections: sections
+                            sections: sections,
+                            tag_ids: selectedTagIds
                         })
                     }
                 );
@@ -3019,6 +3332,20 @@
                 autoResize(
                     descriptionEl
                 );
+
+
+                /* -----------------------------------------
+                   TAGS
+                ------------------------------------------ */
+
+                if (data.tags && Array.isArray(data.tags)) {
+                    selectedTagIds = data.tags.map(t => t.id);
+                    availableTags = data.tags;
+                } else {
+                    selectedTagIds = [];
+                }
+
+                renderSelectedTags();
 
 
                 /* -----------------------------------------
@@ -4232,6 +4559,91 @@
                     class="px-4 py-2.5 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors"
                 >
                     Save Draft
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {{-- =========================================================
+         TAG SELECTOR MODAL
+    ========================================================== --}}
+    <div
+        id="tagSelectorModal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center"
+    >
+
+        <div
+            class="modal-backdrop absolute inset-0 bg-black/40"
+            onclick="closeTagSelector()"
+        ></div>
+
+        <div
+            class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[80vh] overflow-y-auto"
+        >
+
+            {{-- Modal Header --}}
+            <div class="flex items-center justify-between mb-4">
+
+                <h3 class="text-lg font-semibold text-black">
+                    Select Tags
+                </h3>
+
+                <button
+                    onclick="closeTagSelector()"
+                    class="text-gray-400 hover:text-gray-600 p-1"
+                >
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
+
+            </div>
+
+            {{-- Search Input --}}
+            <input
+                id="tagSearchInput"
+                type="text"
+                placeholder="Search tags..."
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-4 focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                oninput="filterTagsInModal()"
+            >
+
+            {{-- Tags List --}}
+            <div
+                id="tagsListContainer"
+                class="space-y-2 max-h-96 overflow-y-auto"
+            >
+                {{-- Tags will be rendered here --}}
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100">
+
+                <button
+                    onclick="closeTagSelector()"
+                    class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    onclick="applyTagSelection()"
+                    class="px-4 py-2.5 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                    Apply
                 </button>
 
             </div>

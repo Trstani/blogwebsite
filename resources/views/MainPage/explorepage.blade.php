@@ -2,8 +2,10 @@
 
     {{-- Hero --}}
     <x-hero
-        title="Explore Articles"
-        subtitle="Discover articles by topic, trend, or search."
+        :title="$activeTag ? $activeTag->name : 'Explore Articles'"
+        :subtitle="$activeTag
+            ? 'Discover articles, ideas, and stories related to ' . $activeTag->name . '.'
+            : 'Discover articles by topic, trend, or search.'"
     />
 
     {{-- Search + Filters --}}
@@ -73,6 +75,7 @@
 
     <script>
         const articles = @json($articles);
+        const activeTag = @json($activeTag);
         let currentSort = 'latest';
         let currentCategory = 'all';
         let searchQuery = '';
@@ -89,7 +92,7 @@
                 );
             }
 
-            // Category filter
+            // Category filter (client-side, in addition to server-side)
             if (currentCategory !== 'all') {
                 filtered = filtered.filter(a => a.category === currentCategory);
             }
@@ -169,6 +172,17 @@
                     btn.className = 'px-3 py-1.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors';
                 }
             });
+
+            // Update URL while preserving tag filter if present
+            const params = new URLSearchParams();
+            if (activeTag) {
+                params.set('tag', activeTag.slug);
+            }
+            if (cat !== 'all') {
+                params.set('category', cat);
+            }
+            const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
 
             renderArticles();
         }

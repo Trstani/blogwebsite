@@ -36,6 +36,18 @@ Route::get('/writer/write', function () {
 
 })->name('writer.write')->middleware('auth');
 
+// Get available tags for tag selector
+Route::get('/writer/tags', function () {
+    $tags = \App\Models\Tag::orderBy('name')
+        ->select('id', 'name', 'slug')
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'tags' => $tags,
+    ]);
+})->name('writer.tags')->middleware('auth');
+
 // Edit existing article
 Route::get('/writer/write/{id}', function ($id) {
 

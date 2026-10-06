@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\TagController;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\User;
@@ -18,29 +19,63 @@ Route::get('/admin/dashboard', function () {
         ->get()
         ->groupBy(fn ($a) => $a->category->name ?? 'Uncategorized');
 
-    $filterCategory = request('category');
-
-    if ($filterCategory) {
-        $pendingArticles = Article::where('status', 'pending')
-            ->whereHas('category', fn ($q) => $q->where('slug', $filterCategory))
-            ->with('category', 'author')
-            ->latest()
-            ->get();
-    } else {
-        $pendingArticles = Article::where('status', 'pending')
-            ->with('category', 'author')
-            ->latest()
-            ->get();
-    }
-
     $categories = Category::all();
-    $writers = $user->isAdmin() ? User::where('role', 'writer')->get() : collect();
-    $admins = $user->role === 'super_admin' ? User::where('role', 'admin')->get() : collect();
+
+    // ========== USERS PAGINATION & SEARCH ==========
+    $userSearch = request('user_search', '');
+    
+    $adminsQuery = User::where('role', 'admin');
+    if ($userSearch) {
+        $adminsQuery->where(function ($q) use ($userSearch) {
+            $q->where('name', 'like', "%{$userSearch}%")
+              ->orWhere('email', 'like', "%{$userSearch}%")
+              ->orWhere('slug', 'like', "%{$userSearch}%");
+        });
+    }
+    $admins = $user->role === 'super_admin' ? $adminsQuery->paginate(15, ['*'], 'admins_page') : collect();
+
+    $writersQuery = User::where('role', 'writer');
+    if ($userSearch) {
+        $writersQuery->where(function ($q) use ($userSearch) {
+            $q->where('name', 'like', "%{$userSearch}%")
+              ->orWhere('email', 'like', "%{$userSearch}%")
+              ->orWhere('slug', 'like', "%{$userSearch}%");
+        });
+    }
+    $writers = $user->isAdmin() ? $writersQuery->paginate(15, ['*'], 'writers_page') : collect();
+
+    // ========== ARTICLES PAGINATION & SEARCH ==========
+    $filterCategory = request('category', '');
+    $articleSearch = request('article_search', '');
+
+    // Pending articles
+    $pendingQuery = Article::where('status', 'pending')
+        ->with('category', 'author');
+    
+    if ($filterCategory) {
+        $pendingQuery->whereHas('category', fn ($q) => $q->where('slug', $filterCategory));
+    }
+    
+    if ($articleSearch) {
+        $pendingQuery->where('title', 'like', "%{$articleSearch}%");
+    }
+    
+    $pendingArticles = $pendingQuery->latest()->paginate(10, ['*'], 'pending_page');
+
+    // Published articles
+    $publishedQuery = Article::where('status', 'published')
+        ->with('category', 'author');
+    
+    if ($articleSearch) {
+        $publishedQuery->where('title', 'like', "%{$articleSearch}%");
+    }
+    
+    $publishedArticles = $publishedQuery->latest()->paginate(10, ['*'], 'published_page');
 
     return view('MainPage.admindashboard', compact(
         'totalUsers', 'published', 'pending',
-        'pendingByCategory', 'pendingArticles', 'categories', 'writers', 'admins',
-        'filterCategory'
+        'pendingByCategory', 'pendingArticles', 'publishedArticles', 'categories', 
+        'writers', 'admins', 'filterCategory', 'userSearch', 'articleSearch'
     ));
 })->name('admin.dashboard')->middleware(['auth', 'admin']);
 
@@ -102,3 +137,18 @@ Route::post('/admin/articles/{article}/feature', function (Article $article) {
 
     return back()->with('success', $status);
 })->name('admin.feature')->middleware(['auth', 'admin']);
+
+// ====== TAG MANAGER ROUTES ======
+Route::resource('admin/tags', TagController::class, [
+    'names' => [
+        'index' => 'admin.tags.index',
+        'create' => 'admin.tags.create',
+        'store' => 'admin.tags.store',
+        'edit' => 'admin.tags.edit',
+        'update' => 'admin.tags.update',
+        'destroy' => 'admin.tags.destroy',
+    ],
+    'parameters' => [
+        'tags' => 'tag',
+    ],
+])->middleware(['auth', 'admin']);
