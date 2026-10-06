@@ -288,8 +288,7 @@
         {{-- ========== TAXONOMY TAB ========== --}}
         <div id="taxonomy" class="tab-content hidden">
 
-            {{-- Tag Manager --}}
-            @include('admin.tags.index')
+            
 
         </div>
 
