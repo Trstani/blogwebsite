@@ -88,6 +88,23 @@ class CommentController extends Controller
             // Load user relationship for response
             $comment->load('user');
 
+            // Send notifications for new comments/replies
+            if (!$parentId) {
+                // Root comment: notify article author if they're not the commenter
+                if ($comment->user_id !== $article->author_id) {
+                    $article->author->notify(
+                        new \App\Notifications\NewCommentNotification($comment, $article)
+                    );
+                }
+            } else {
+                // Reply: notify parent comment author if they're not the replier
+                if ($comment->user_id !== $parentComment->user_id) {
+                    $parentComment->user->notify(
+                        new \App\Notifications\CommentReplyNotification($comment, $article, $parentComment)
+                    );
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Comment created successfully.',

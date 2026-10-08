@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\DeleteCloudinaryImageJob;
 use App\Models\Article;
+use App\Models\User;
 use App\Services\LocalFileStorageService;
 use App\Services\RichTextSanitizer;
 use App\Services\VideoUrlHelper;
@@ -380,6 +381,15 @@ class ArticleController extends Controller
 
         $article->status = 'pending';
         $article->save();
+
+        // Notify admins if article was just submitted for review
+        if ($article->wasChanged('status')) {
+            User::whereIn('role', ['admin', 'super_admin'])
+                ->get()
+                ->each(fn($admin) => $admin->notify(
+                    new \App\Notifications\ArticleSubmittedForReviewNotification($article)
+                ));
+        }
 
         return response()->json([
             'success' => true,

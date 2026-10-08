@@ -2,7 +2,7 @@
 
 <section class="pt-10 pb-8 md:pt-14 md:pb-10">
     
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="max-w-7xl mx-auto px-6">
 
         {{-- Editorial Header --}}
         <div class="flex items-end justify-between gap-8 border-b border-gray-200 pb-7">

@@ -26,46 +26,46 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     $search = request('search', '');
 
-    // Featured articles query
-    $featuredQuery = Article::where('status', 'published')
+    // Featured articles query (NOT affected by search)
+    $featured = Article::where('status', 'published')
         ->where('is_featured', true)
-        ->with('category', 'author');
-    
-    if ($search) {
-        $featuredQuery->where('title', 'like', "%{$search}%");
-    }
-    
-    $featured = $featuredQuery
+        ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
+        ->with('category', 'author')
         ->latest('updated_at')
         ->first();
 
-    // Additional featured articles
-    $articlesQuery = Article::where('status', 'published')
+    // Additional featured articles (NOT affected by search)
+    $articles = Article::where('status', 'published')
         ->where('is_featured', true)
         ->when($featured, fn ($q) => $q->where('id', '!=', $featured->id))
-        ->with('category', 'author');
-    
-    if ($search) {
-        $articlesQuery->where('title', 'like', "%{$search}%");
-    }
-    
-    $articles = $articlesQuery
+        ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
+        ->with('category', 'author')
         ->latest()
         ->take(4)
         ->get();
 
+    // Trending articles (always static, NOT affected by search)
     $trendingArticles = Article::where('status', 'published')
         ->with('category', 'author')
         ->orderByDesc('views')
         ->take(5)
         ->get();
 
-    $recentArticles = Article::where('status', 'published')
-        ->with('category', 'author')
+    // Recent articles (ONLY this section is affected by search)
+    $recentArticlesQuery = Article::where('status', 'published')
+        ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
+        ->with('category', 'author');
+    
+    if ($search) {
+        $recentArticlesQuery->where('title', 'like', "%{$search}%");
+    }
+    
+    $recentArticles = $recentArticlesQuery
         ->latest()
         ->take(6)
         ->get();
 
+    // Most discussed articles (always static, NOT affected by search)
     $mostDiscussedArticles = Article::where('status', 'published')
         ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
         ->with('category', 'author')
@@ -73,7 +73,7 @@ Route::get('/', function () {
         ->take(5)
         ->get();
 
-    // Popular topics (tags by article count - published only)
+    // Popular topics (tags by article count - published only, NOT affected by search)
     $popularTags = Tag::withCount(['articles' => function ($q) {
         $q->where('status', 'published');
     }])
@@ -105,6 +105,7 @@ Route::get('/auth', function () {
 // Explore page
 Route::get('/explore', function (Request $request) {
     $articlesQuery = Article::where('status', 'published')
+        ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
         ->with('category', 'author', 'tags');
 
     // Filter by tag if provided
@@ -140,6 +141,7 @@ Route::get('/explore', function (Request $request) {
             )->format('M d, Y'),
             'thumbnail' => ImageHelper::imageUrl($a->cover_image),
             'views' => $a->views,
+            'discussion_count' => $a->discussion_count,
         ])
         ->values();
 
@@ -397,6 +399,24 @@ Route::middleware('auth')->group(function () {
         '/local-upload/gif',
         [FileUploadController::class, 'uploadGif']
     )->name('local.upload.gif');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Routes
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/notifications', [
+        \App\Http\Controllers\NotificationController::class, 'index'
+    ])->name('notifications.index');
+
+    Route::post('/notifications/{notification}/mark-as-read', [
+        \App\Http\Controllers\NotificationController::class, 'markAsRead'
+    ])->name('notifications.mark-as-read');
+
+    Route::post('/notifications/mark-all-as-read', [
+        \App\Http\Controllers\NotificationController::class, 'markAllAsRead'
+    ])->name('notifications.mark-all-as-read');
 });
 /*
 Route::get('/about', function () {

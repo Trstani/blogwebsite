@@ -197,12 +197,12 @@
 
         {{-- Tags Section (if article has tags) --}}
         @if($article->tags && $article->tags->count() > 0)
-            <div class="mt-6 pt-4 border-t border-gray-100">
+            <div class="my-4 p-4 border-t border-gray-100">
                 <div class="flex flex-wrap gap-2">
                     @foreach($article->tags as $tag)
                         <a href="{{ route('explore', ['tag' => $tag->slug]) }}"
                            class="inline-block px-3 py-1.5 rounded-full text-xs font-medium 
-                                    bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                                    bg-gray-100 text-gray-700 hover:bg-cyan-200 transition-colors">
                             {{ $tag->name }}
                         </a>
                     @endforeach

@@ -10,55 +10,32 @@ use Illuminate\Support\Str;
 class TagController extends Controller
 {
     /**
-     * Display a listing of tags with article counts.
-     */
-    public function index()
-    {
-        $tags = Tag::withCount('articles')
-            ->orderBy('name')
-            ->get();
-
-        return view('admin.tags.index', compact('tags'));
-    }
-
-    /**
-     * Show the form for creating a new tag.
-     */
-    public function create()
-    {
-        return view('admin.tags.form');
-    }
-
-    /**
      * Store a newly created tag in storage.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:tags,name'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:tags,slug'],
         ]);
 
-        // Auto-generate slug from name if not provided or empty
-        if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['name']);
-        } else {
-            $validated['slug'] = Str::slug($validated['slug']);
+        // Auto-generate slug from name
+        $validated['slug'] = Str::slug($validated['name']);
+
+        $tag = Tag::create($validated);
+
+        // Return JSON for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tag created successfully.',
+                'tag' => $tag->load(['articles' => function($q) { $q->where('status', 'published'); }])
+                    ->makeVisible('articles_count')
+            ]);
         }
 
-        Tag::create($validated);
-
         return redirect()
-            ->route('admin.tags.index')
+            ->route('admin.dashboard', ['tab' => 'taxonomy'])
             ->with('success', 'Tag created successfully.');
-    }
-
-    /**
-     * Show the form for editing the specified tag.
-     */
-    public function edit(Tag $tag)
-    {
-        return view('admin.tags.form', compact('tag'));
     }
 
     /**
@@ -68,20 +45,24 @@ class TagController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:tags,name,' . $tag->id],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:tags,slug,' . $tag->id],
         ]);
 
-        // Auto-generate slug from name if not provided or empty
-        if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['name']);
-        } else {
-            $validated['slug'] = Str::slug($validated['slug']);
-        }
+        // Auto-generate slug from name
+        $validated['slug'] = Str::slug($validated['name']);
 
         $tag->update($validated);
 
+        // Return JSON for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tag updated successfully.',
+                'tag' => $tag
+            ]);
+        }
+
         return redirect()
-            ->route('admin.tags.index')
+            ->route('admin.dashboard', ['tab' => 'taxonomy'])
             ->with('success', 'Tag updated successfully.');
     }
 
@@ -93,8 +74,16 @@ class TagController extends Controller
         $articlesCount = $tag->articles()->count();
         $tag->delete();
 
+        // Return JSON for AJAX requests
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Tag deleted successfully. Removed from {$articlesCount} article(s)."
+            ]);
+        }
+
         return redirect()
-            ->route('admin.tags.index')
+            ->route('admin.dashboard', ['tab' => 'taxonomy'])
             ->with('success', "Tag deleted successfully. Removed from {$articlesCount} article(s).");
     }
 }

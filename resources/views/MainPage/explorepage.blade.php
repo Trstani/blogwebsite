@@ -9,7 +9,7 @@
     />
 
     {{-- Search + Filters --}}
-    <section class="max-w-6xl mx-auto px-6 pb-8">
+    <section class="max-w-7xl mx-auto px-6 pb-8">
 
         {{-- Search Bar --}}
         <div class="max-w-xl mb-8">
@@ -59,9 +59,34 @@
     </section>
 
     {{-- Articles Grid --}}
-    <section class="max-w-6xl mx-auto px-6 pb-16">
+    <section class="max-w-7xl mx-auto px-6 pb-16">
         <div id="articlesGrid" class="grid md:grid-cols-3 gap-8">
-            {{-- Articles rendered by JS --}}
+            {{-- Pre-rendered article cards using Blade component --}}
+            @forelse($articles as $article)
+            <div class="article-card-wrapper"
+                data-article-id="{{ $article->id }}"
+                data-article-title="{{ strtolower($article->title) }}"
+                data-article-slug="{{ $article->slug }}"
+                data-article-category="{{ $article->category }}"
+                data-article-views="{{ $article->views ?? 0 }}"
+                data-article-date="{{ strtotime($article->date) }}"
+                data-search-text="{{ strtolower($article->title . ' ' . $article->slug . ' ' . ($article->description ?? '')) }}">
+
+                <x-maincomponents.article-card :article="(object)[
+                    'title' => $article->title,
+                    'slug' => $article->slug,
+                    'category' => $article->categoryName,
+                    'description' => $article->description,
+                    'author' => $article->author,
+                    'date' => $article->date,
+                    'thumbnail' => $article->thumbnail,
+                    'views' => $article->views,
+                    'discussion_count' => $article->discussion_count,
+                ]" />
+            </div>
+            @empty
+                {{-- Empty state handled by JavaScript --}}
+            @endforelse
         </div>
 
         {{-- Empty State --}}
@@ -74,104 +99,134 @@
     </section>
 
     <script>
-        const articles = @json($articles);
         const activeTag = @json($activeTag);
         let currentSort = 'latest';
         let currentCategory = 'all';
         let searchQuery = '';
 
-        function renderArticles() {
-            let filtered = [...articles];
+        /**
+         * Filter and sort articles based on current state
+         * Manipulates DOM directly - no HTML generation
+         */
+        function applyFilters() {
+            const cards = document.querySelectorAll('.article-card-wrapper');
+            let visibleCards = [];
 
-            // Search filter
-            if (searchQuery) {
-                const q = searchQuery.toLowerCase();
-                filtered = filtered.filter(a =>
-                    a.title.toLowerCase().includes(q) ||
-                    a.slug.toLowerCase().includes(q)
-                );
-            }
+            cards.forEach(card => {
+                // Search filter (case-insensitive)
+                const searchText = card.dataset.searchText;
+                const matchesSearch = searchQuery === '' || searchText.includes(searchQuery.toLowerCase());
 
-            // Category filter (client-side, in addition to server-side)
-            if (currentCategory !== 'all') {
-                filtered = filtered.filter(a => a.category === currentCategory);
-            }
+                // Category filter
+                const cardCategory = card.dataset.articleCategory;
+                const matchesCategory = currentCategory === 'all' || cardCategory === currentCategory;
 
-            // Sort
-            if (currentSort === 'popular') {
-                filtered.sort((a, b) => b.views - a.views);
-            } else {
-                filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-            }
+                // Determine visibility
+                const visible = matchesSearch && matchesCategory;
+                card.style.display = visible ? '' : 'none';
+
+                if (visible) {
+                    visibleCards.push(card);
+                }
+            });
+
+            // Apply sorting to visible cards
+            applySorting(visibleCards);
+
+            // Update empty state
+            updateEmptyState();
+        }
+
+        /**
+         * Sort visible cards and reorder DOM
+         */
+        function applySorting(visibleCards) {
+            if (visibleCards.length === 0) return;
 
             const grid = document.getElementById('articlesGrid');
-            const empty = document.getElementById('emptyState');
 
-            if (filtered.length === 0) {
-                grid.innerHTML = '';
-                empty.classList.remove('hidden');
-                return;
+            if (currentSort === 'popular') {
+                // Sort by views descending
+                visibleCards.sort((a, b) => {
+                    const viewsA = parseInt(a.dataset.articleViews) || 0;
+                    const viewsB = parseInt(b.dataset.articleViews) || 0;
+                    return viewsB - viewsA;
+                });
+            } else {
+                // Sort by date descending (latest first)
+                visibleCards.sort((a, b) => {
+                    const dateA = parseInt(a.dataset.articleDate) || 0;
+                    const dateB = parseInt(b.dataset.articleDate) || 0;
+                    return dateB - dateA;
+                });
             }
 
-            empty.classList.add('hidden');
-            grid.innerHTML = filtered.map(article => `
-                <a href="/blog/${article.slug}" class="group block">
-                    <article class="bg-white">
-                        ${article.thumbnail
-                            ? `<div class="aspect-[16/10] overflow-hidden bg-gray-100 rounded-sm">
-                                <img src="${article.thumbnail}" alt="${article.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                               </div>`
-                            : `<div class="aspect-[16/10] bg-gray-100 rounded-sm flex items-center justify-center">
-                                <span class="text-gray-300 text-4xl font-light">—</span>
-                               </div>`
-                        }
-                        <div class="mt-4">
-                            <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                ${article.categoryName}
-                            </span>
-                            <h3 class="mt-1 text-lg font-semibold text-black leading-snug group-hover:text-gray-600 transition-colors">
-                                ${article.title}
-                            </h3>
-                            <p class="mt-2 text-sm text-gray-500 leading-relaxed line-clamp-2">
-                                ${article.description || ''}
-                            </p>
-                            <div class="mt-3 flex items-center space-x-3 text-xs text-gray-400">
-                                <span>${article.author}</span>
-                                <span>·</span>
-                                <span>${article.date}</span>
-                                <span>·</span>
-                                <span>${article.views} views</span>
-                            </div>
-                        </div>
-                    </article>
-                </a>
-            `).join('');
+            // Reorder DOM by moving cards to end (maintains order)
+            visibleCards.forEach(card => {
+                grid.appendChild(card);
+            });
         }
 
-        function setSort(sort) {
-            currentSort = sort;
-            document.getElementById('tab-latest').className = sort === 'latest'
-                ? 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all'
-                : 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
-            document.getElementById('tab-popular').className = sort === 'popular'
-                ? 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all'
-                : 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
-            renderArticles();
+        /**
+         * Update sort tab styling
+         */
+        function updateSortTabs() {
+            const latestBtn = document.getElementById('tab-latest');
+            const popularBtn = document.getElementById('tab-popular');
+
+            if (currentSort === 'latest') {
+                latestBtn.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all';
+                popularBtn.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
+            } else {
+                latestBtn.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
+                popularBtn.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all';
+            }
         }
 
-        function setCategory(cat) {
-            currentCategory = cat;
-
-            // Update all category buttons
-            const allBtns = document.querySelectorAll('[id^="cat-"]');
-            allBtns.forEach(btn => {
-                const btnCat = btn.id.replace('cat-', '');
-                if (btnCat === cat) {
+        /**
+         * Update category button styling
+         */
+        function updateCategoryButtons() {
+            const buttons = document.querySelectorAll('[id^="cat-"]');
+            buttons.forEach(btn => {
+                const btnCategory = btn.id.replace('cat-', '');
+                if (btnCategory === currentCategory) {
                     btn.className = 'px-3 py-1.5 text-xs font-medium rounded-full bg-black text-white transition-colors';
                 } else {
                     btn.className = 'px-3 py-1.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors';
                 }
             });
+        }
+
+        /**
+         * Show/hide empty state based on visible articles
+         */
+        function updateEmptyState() {
+            const visibleCount = document.querySelectorAll('.article-card-wrapper:not([style*="display: none"])').length;
+            const emptyState = document.getElementById('emptyState');
+
+            if (visibleCount === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Handle sort change
+         */
+        function setSort(sort) {
+            currentSort = sort;
+            updateSortTabs();
+            applyFilters();
+        }
+
+        /**
+         * Handle category filter change
+         */
+        function setCategory(cat) {
+            currentCategory = cat;
+            updateCategoryButtons();
 
             // Update URL while preserving tag filter if present
             const params = new URLSearchParams();
@@ -184,16 +239,23 @@
             const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
             window.history.replaceState({}, '', newUrl);
 
-            renderArticles();
+            applyFilters();
         }
 
+        /**
+         * Handle search input
+         */
         function filterArticles() {
             searchQuery = document.getElementById('searchInput').value;
-            renderArticles();
+            applyFilters();
         }
 
-        // Initial render
-        document.addEventListener('DOMContentLoaded', renderArticles);
+        // Initial setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSortTabs();
+            updateCategoryButtons();
+            applyFilters();
+        });
     </script>
 
 </x-layouts.app>

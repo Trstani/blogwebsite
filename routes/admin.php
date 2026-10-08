@@ -3,12 +3,14 @@
 use App\Http\Controllers\Admin\TagController;
 use App\Models\Article;
 use App\Models\Category;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/admin/dashboard', function () {
     $user = auth()->user();
+    $activeTab = request('tab', 'overview');
 
     $totalUsers = User::count();
     $published = Article::where('status', 'published')->count();
@@ -22,14 +24,16 @@ Route::get('/admin/dashboard', function () {
     $categories = Category::all();
 
     // ========== USERS PAGINATION & SEARCH ==========
+    $userType = request('user_type', 'users');
     $userSearch = request('user_search', '');
+    $adminSearch = request('admin_search', '');
     
     $adminsQuery = User::where('role', 'admin');
-    if ($userSearch) {
-        $adminsQuery->where(function ($q) use ($userSearch) {
-            $q->where('name', 'like', "%{$userSearch}%")
-              ->orWhere('email', 'like', "%{$userSearch}%")
-              ->orWhere('slug', 'like', "%{$userSearch}%");
+    if ($adminSearch) {
+        $adminsQuery->where(function ($q) use ($adminSearch) {
+            $q->where('name', 'like', "%{$adminSearch}%")
+              ->orWhere('email', 'like', "%{$adminSearch}%")
+              ->orWhere('slug', 'like', "%{$adminSearch}%");
         });
     }
     $admins = $user->role === 'super_admin' ? $adminsQuery->paginate(15, ['*'], 'admins_page') : collect();
@@ -72,10 +76,16 @@ Route::get('/admin/dashboard', function () {
     
     $publishedArticles = $publishedQuery->latest()->paginate(10, ['*'], 'published_page');
 
+    // ========== TAXONOMY (TAGS) ==========
+    $tags = Tag::withCount('articles')
+        ->orderBy('name')
+        ->get();
+
     return view('MainPage.admindashboard', compact(
         'totalUsers', 'published', 'pending',
         'pendingByCategory', 'pendingArticles', 'publishedArticles', 'categories', 
-        'writers', 'admins', 'filterCategory', 'userSearch', 'articleSearch'
+        'writers', 'admins', 'filterCategory', 'userSearch', 'articleSearch', 'adminSearch',
+        'activeTab', 'tags', 'userType'
     ));
 })->name('admin.dashboard')->middleware(['auth', 'admin']);
 
@@ -83,6 +93,11 @@ Route::post('/admin/articles/{article}/approve', function (Article $article) {
     $article->status = 'published';
     $article->published_at = now();
     $article->save();
+
+    // Notify author if article was just published
+    if ($article->wasChanged('status')) {
+        $article->author->notify(new \App\Notifications\ArticleApprovedNotification($article));
+    }
 
     return back()->with('success', 'Article published!');
 })->name('admin.approve')->middleware(['auth', 'admin']);
@@ -95,6 +110,11 @@ Route::post('/admin/articles/{article}/reject', function (Request $request, Arti
     $article->status = 'rejected';
     $article->admin_notes = $request->admin_notes;
     $article->save();
+
+    // Notify author if article was just rejected
+    if ($article->wasChanged('status')) {
+        $article->author->notify(new \App\Notifications\ArticleRejectedNotification($article));
+    }
 
     return back()->with('success', 'Article rejected with feedback.');
 })->name('admin.reject')->middleware(['auth', 'admin']);
@@ -139,16 +159,16 @@ Route::post('/admin/articles/{article}/feature', function (Article $article) {
 })->name('admin.feature')->middleware(['auth', 'admin']);
 
 // ====== TAG MANAGER ROUTES ======
+// Only store, update, and destroy are used by the AJAX modal in the dashboard
+// (index, create, edit were removed with the migration to modal-based management)
 Route::resource('admin/tags', TagController::class, [
     'names' => [
-        'index' => 'admin.tags.index',
-        'create' => 'admin.tags.create',
         'store' => 'admin.tags.store',
-        'edit' => 'admin.tags.edit',
         'update' => 'admin.tags.update',
         'destroy' => 'admin.tags.destroy',
     ],
     'parameters' => [
         'tags' => 'tag',
     ],
+    'only' => ['store', 'update', 'destroy'],
 ])->middleware(['auth', 'admin']);

@@ -1,67 +1,110 @@
 @props(['articles' => []])
 
-<aside class="rounded-lg border border-gray-100 bg-white p-4">
-    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-900">
-        Most Discussed
-    </h2>
+<aside class="rounded-2xl border border-zinc-200 bg-white p-5">
+    {{-- Header --}}
+    <div class="mb-5 flex items-start justify-between">
+        <div>
+            <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900">
+                Most Discussed
+            </h2>
+
+            <div class="mt-2 h-0.5 w-8 bg-cyan-400"></div>
+        </div>
+
+        {{-- Comment icon --}}
+        <svg
+            class="h-5 w-5 text-cyan-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+        </svg>
+    </div>
 
     @if(count($articles) > 0)
-        <div class="space-y-2.5">
+        <ol>
             @foreach($articles as $index => $article)
-                <a
-                    href="/blog/{{ $article->slug ?? '#' }}"
-                    class="group relative block min-h-[150px] overflow-hidden rounded-lg bg-[#0f2747]"
-                >
-                    @if($article->thumbnail ?? false)
-                        <img
-                            src="{{ imageUrl($article->thumbnail) }}"
-                            alt=""
-                            class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                    @else
-                        <div class="absolute inset-0 bg-gradient-to-br from-[#0f2747] to-[#071525]"></div>
-                    @endif
-
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/20"></div>
-
-                    <div class="relative z-10 flex min-h-[150px] flex-col justify-between p-3.5">
-                        <div class="flex items-start justify-between">
-                            <span class="text-2xl font-bold leading-none text-white/70">
+                <li class="border-b border-zinc-100 last:border-b-0">
+                    <a
+                        href="/blog/{{ $article->slug ?? '#' }}"
+                        class="group block py-4 first:pt-1 last:pb-1"
+                    >
+                        <div class="flex gap-4">
+                            {{-- Rank --}}
+                            <span
+                                class="shrink-0 pt-0.5 text-3xl font-semibold leading-none
+                                       tabular-nums tracking-tight text-zinc-200
+                                       transition-colors duration-300
+                                       group-hover:text-cyan-200"
+                            >
                                 {{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}
                             </span>
 
-                            @if($article->category ?? false)
-                                <span class="rounded bg-white/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-white/80 backdrop-blur-sm">
-                                    {{ $article->category }}
-                                </span>
-                            @endif
-                        </div>
+                            {{-- Article Content --}}
+                            <div class="min-w-0 flex-1">
+                                {{-- Title --}}
+                                <h3
+                                    class="line-clamp-3 text-sm font-semibold leading-snug
+                                           text-zinc-900 transition-colors duration-300
+                                           group-hover:text-cyan-700"
+                                >
+                                    {{ $article->title ?? 'Article Title' }}
+                                </h3>
 
-                        <div>
-                            <h3 class="line-clamp-2 text-sm font-semibold leading-snug text-white transition-colors group-hover:text-gray-200">
-                                {{ $article->title ?? 'Article Title' }}
-                            </h3>
+                                {{-- Metadata --}}
+                                <div
+                                    class="mt-3 flex items-center justify-between gap-3
+                                           text-[10px] leading-none"
+                                >
+                                    {{-- Author --}}
+                                    @if($article->author ?? false)
+                                        <span class="min-w-0 truncate text-zinc-400">
+                                            {{ $article->author }}
+                                        </span>
+                                    @endif
 
-                            <div class="mt-1.5 flex items-center gap-2 text-[10px] text-white/60">
-                                @if($article->author ?? false)
-                                    <span>{{ $article->author }}</span>
-                                @endif
+                                    {{-- Discussion count --}}
+                                    @if($article->discussion_count ?? false)
+                                        <span
+                                            class="inline-flex shrink-0 items-center gap-1
+                                                   font-semibold text-cyan-600"
+                                        >
+                                            <svg
+                                                class="h-3.5 w-3.5"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                                />
+                                            </svg>
 
-                                @if(($article->author ?? false) && ($article->discussion_count ?? false))
-                                    <span>·</span>
-                                @endif
-
-                                @if($article->discussion_count ?? false)
-                                    <span>{{ $article->discussion_count }} comments</span>
-                                @endif
+                                            <span>
+                                                {{ $article->discussion_count }}
+                                            </span>
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </a>
+                    </a>
+                </li>
             @endforeach
-        </div>
+        </ol>
     @else
-        <p class="py-6 text-center text-sm text-gray-400">
+        <p class="py-6 text-center text-sm text-zinc-400">
             Belum ada artikel dengan diskusi.
         </p>
     @endif
