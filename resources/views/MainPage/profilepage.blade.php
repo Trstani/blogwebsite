@@ -81,12 +81,29 @@
 
         {{-- Articles --}}
         <div class="bg-white border border-gray-100 rounded-lg p-6">
-            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                Articles by {{ $user->name }} ({{ $articles->count() }})
-            </h2>
+            {{-- Tab Navigation --}}
+            <div class="mb-6 border-b border-gray-200">
+                <div class="flex gap-6">
+                    <a href="{{ route('profile', ['slug' => $user->slug, 'tab' => 'articles']) }}"
+                       class="pb-4 text-sm font-semibold transition-colors {{ $tab === 'articles' ? 'text-black border-b-2 border-black' : 'text-gray-500 hover:text-gray-700' }}">
+                        My Articles
+                    </a>
+                    @if($isOwner)
+                        <a href="{{ route('profile', ['slug' => $user->slug, 'tab' => 'liked']) }}"
+                           class="pb-4 text-sm font-semibold transition-colors {{ $tab === 'liked' ? 'text-black border-b-2 border-black' : 'text-gray-500 hover:text-gray-700' }}">
+                            Liked Articles
+                        </a>
+                        <a href="{{ route('profile', ['slug' => $user->slug, 'tab' => 'bookmarked']) }}"
+                           class="pb-4 text-sm font-semibold transition-colors {{ $tab === 'bookmarked' ? 'text-black border-b-2 border-black' : 'text-gray-500 hover:text-gray-700' }}">
+                            Bookmarked Articles
+                        </a>
+                    @endif
+                </div>
+            </div>
 
+            {{-- Tab Content --}}
             @if($articles->count() > 0)
-                <div class="grid md:grid-cols-3 gap-6">
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
                     @foreach($articles as $article)
                         <x-maincomponents.article-card :article="(object)[
                             'id'          => $article->id,
@@ -94,15 +111,30 @@
                             'slug'        => $article->slug,
                             'description' => $article->description,
                             'category'    => $article->category->name ?? '',
-                            'author'      => $user->name,
-                            'date'        => $article->created_at->format('M d, Y'),
+                            'author'      => $article->author->name ?? 'Unknown',
+                            'date'        => $article->published_at ? $article->published_at->format('M d, Y') : $article->created_at->format('M d, Y'),
                             'status'      => $article->status,
                             'thumbnail'   => $article->cover_image ?: null,
+                            'views'       => $article->views ?? 0,
                         ]" />
                     @endforeach
                 </div>
+
+                {{-- Pagination --}}
+                <div class="mt-8">
+                    {{ $articles->appends(request()->query())->links() }}
+                </div>
             @else
-                <p class="text-sm text-gray-400 text-center py-8">No articles yet.</p>
+                {{-- Empty States --}}
+                <div class="text-sm text-gray-400 text-center py-12">
+                    @if($tab === 'articles')
+                        <p>{{ $isOwner ? "You haven't published any articles yet." : "$user->name hasn't published any articles yet." }}</p>
+                    @elseif($tab === 'liked')
+                        <p>You haven't liked any articles yet.</p>
+                    @elseif($tab === 'bookmarked')
+                        <p>You haven't bookmarked any articles yet.</p>
+                    @endif
+                </div>
             @endif
         </div>
 

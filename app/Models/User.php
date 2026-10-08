@@ -36,6 +36,20 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
+    // User punya banyak liked articles (through article_likes)
+    public function likedArticles()
+    {
+        return $this->belongsToMany(Article::class, 'article_likes', 'user_id', 'article_id')
+            ->withTimestamps();
+    }
+
+    // User punya banyak bookmarked articles (through article_bookmarks)
+    public function bookmarkedArticles()
+    {
+        return $this->belongsToMany(Article::class, 'article_bookmarks', 'user_id', 'article_id')
+            ->withTimestamps();
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin' || $this->role === 'super_admin';

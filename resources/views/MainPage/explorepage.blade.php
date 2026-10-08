@@ -17,11 +17,23 @@
                 <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
                 </svg>
-                <input type="text"
-                       id="searchInput"
-                       placeholder="Search articles by title..."
-                       class="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black transition-colors"
-                       oninput="filterArticles()" />
+                <form id="searchForm" method="GET" action="{{ route('explore') }}" class="contents">
+                    <input type="text"
+                           id="searchInput"
+                           name="search"
+                           placeholder="Search articles by title..."
+                           value="{{ $searchQuery ?? '' }}"
+                           class="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black transition-colors"
+                           onkeypress="handleSearchKeypress(event)" />
+                    
+                    {{-- Preserve tag and category filters --}}
+                    @if($activeTag)
+                        <input type="hidden" name="tag" value="{{ $activeTag->slug }}" />
+                    @endif
+                    @if(request('category') && request('category') !== 'all')
+                        <input type="hidden" name="category" value="{{ request('category') }}" />
+                    @endif
+                </form>
             </div>
         </div>
 
@@ -103,6 +115,16 @@
         let currentSort = 'latest';
         let currentCategory = 'all';
         let searchQuery = '';
+
+        /**
+         * Handle search form submission on Enter key
+         */
+        function handleSearchKeypress(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                document.getElementById('searchForm').submit();
+            }
+        }
 
         /**
          * Filter and sort articles based on current state
@@ -228,13 +250,17 @@
             currentCategory = cat;
             updateCategoryButtons();
 
-            // Update URL while preserving tag filter if present
+            // Update URL while preserving tag filter and search if present
             const params = new URLSearchParams();
             if (activeTag) {
                 params.set('tag', activeTag.slug);
             }
             if (cat !== 'all') {
                 params.set('category', cat);
+            }
+            const searchValue = document.getElementById('searchInput').value;
+            if (searchValue) {
+                params.set('search', searchValue);
             }
             const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
             window.history.replaceState({}, '', newUrl);

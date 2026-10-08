@@ -5,6 +5,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Admin\LegalPageController;
+use App\Http\Controllers\LikeBookmarkController;
 use App\Jobs\DeleteCloudinaryImageJob;
 use App\Models\Article;
 use App\Models\Category;
@@ -24,8 +25,6 @@ use Illuminate\Support\Facades\Route;
 
 // Homepage
 Route::get('/', function () {
-    $search = request('search', '');
-
     // Featured articles query (NOT affected by search)
     $featured = Article::where('status', 'published')
         ->where('is_featured', true)
@@ -51,16 +50,10 @@ Route::get('/', function () {
         ->take(5)
         ->get();
 
-    // Recent articles (ONLY this section is affected by search)
-    $recentArticlesQuery = Article::where('status', 'published')
+    // Recent articles (display-only, NOT affected by search parameter)
+    $recentArticles = Article::where('status', 'published')
         ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
-        ->with('category', 'author');
-    
-    if ($search) {
-        $recentArticlesQuery->where('title', 'like', "%{$search}%");
-    }
-    
-    $recentArticles = $recentArticlesQuery
+        ->with('category', 'author')
         ->latest()
         ->take(6)
         ->get();
@@ -73,13 +66,16 @@ Route::get('/', function () {
         ->take(5)
         ->get();
 
-    // Popular topics (tags by article count - published only, NOT affected by search)
-    $popularTags = Tag::withCount(['articles' => function ($q) {
+    // Popular topics (only tags used by published articles)
+    $popularTags = Tag::whereHas('articles', function ($q) {
         $q->where('status', 'published');
-    }])
-    ->orderByDesc('articles_count')
-    ->take(6)
-    ->get();
+    })
+        ->withCount(['articles' => function ($q) {
+            $q->where('status', 'published');
+        }])
+        ->orderByDesc('articles_count')
+        ->take(6)
+        ->get();
 
     return view(
         'MainPage.homepage',
@@ -89,8 +85,7 @@ Route::get('/', function () {
             'trendingArticles',
             'recentArticles',
             'mostDiscussedArticles',
-            'popularTags',
-            'search'
+            'popularTags'
         )
     );
 })->name('home');
@@ -127,6 +122,20 @@ Route::get('/explore', function (Request $request) {
         });
     }
 
+    // Filter by search term if provided (server-side)
+    $searchQuery = $request->query('search');
+    if ($searchQuery) {
+        $searchTerm = '%' . $searchQuery . '%';
+        $articlesQuery->where(function ($query) use ($searchTerm) {
+            $query->where('title', 'like', $searchTerm)
+                  ->orWhere('description', 'like', $searchTerm)
+                  ->orWhere('slug', 'like', $searchTerm)
+                  ->orWhereHas('tags', function ($tagQuery) use ($searchTerm) {
+                      $tagQuery->where('name', 'like', $searchTerm);
+                  });
+        });
+    }
+
     $articles = $articlesQuery->get()
         ->map(fn ($a) => (object) [
             'id' => $a->id,
@@ -149,7 +158,7 @@ Route::get('/explore', function (Request $request) {
 
     return view(
         'MainPage.explorepage',
-        compact('articles', 'categories', 'activeTag')
+        compact('articles', 'categories', 'activeTag', 'searchQuery')
     );
 })->name('explore');
 
@@ -228,20 +237,54 @@ Route::get('/blog/{slug}', function ($slug) {
 */
 
 // Public profile
-Route::get('/profile/{slug}', function ($slug) {
+Route::get('/profile/{slug}', function ($slug, Request $request) {
     $user = User::where('slug', $slug)->firstOrFail();
-
-    $articles = Article::where('author_id', $user->id)
-        ->where('status', 'published')
-        ->with('category')
-        ->latest()
-        ->get();
-
     $isOwner = auth()->check() && auth()->id() === $user->id;
+
+    // Get tab parameter, validate it
+    $tab = $request->query('tab', 'articles');
+    $validTabs = ['articles', 'liked', 'bookmarked'];
+    $tab = in_array($tab, $validTabs) ? $tab : 'articles';
+
+    // Initialize articles variable
+    $articles = null;
+
+    if ($tab === 'articles') {
+        // My Articles - show author's published articles
+        $articles = Article::where('author_id', $user->id)
+            ->where('status', 'published')
+            ->with('category', 'author')
+            ->latest()
+            ->paginate(9);
+    } elseif ($tab === 'liked' && $isOwner) {
+        // Liked Articles - only for authenticated owner
+        $articles = $user->likedArticles()
+            ->where('status', 'published')
+            ->with('category', 'author')
+            ->latest()
+            ->paginate(9);
+    } elseif ($tab === 'bookmarked' && $isOwner) {
+        // Bookmarked Articles - only for authenticated owner
+        $articles = $user->bookmarkedArticles()
+            ->where('status', 'published')
+            ->with('category', 'author')
+            ->latest()
+            ->paginate(9);
+    }
+
+    // If accessing private tabs as non-owner, show My Articles instead
+    if ($articles === null) {
+        $tab = 'articles';
+        $articles = Article::where('author_id', $user->id)
+            ->where('status', 'published')
+            ->with('category', 'author')
+            ->latest()
+            ->paginate(9);
+    }
 
     return view(
         'MainPage.profilepage',
-        compact('user', 'articles', 'isOwner')
+        compact('user', 'articles', 'isOwner', 'tab')
     );
 })->name('profile');
 
@@ -371,6 +414,16 @@ Route::get('/articles/{id}', [ArticleController::class, 'getArticle'])
 
 /*
 |--------------------------------------------------------------------------
+| Search API
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/api/search/suggestions', [\App\Http\Controllers\SearchController::class, 'suggestions'])
+    ->name('search.suggestions');
+
+
+/*
+|--------------------------------------------------------------------------
 | Local File Uploads
 |--------------------------------------------------------------------------
 |
@@ -417,6 +470,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/mark-all-as-read', [
         \App\Http\Controllers\NotificationController::class, 'markAllAsRead'
     ])->name('notifications.mark-all-as-read');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Like & Bookmark Routes
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/articles/{article}/like', [LikeBookmarkController::class, 'toggleLike'])
+        ->name('articles.like');
+
+    Route::post('/articles/{article}/bookmark', [LikeBookmarkController::class, 'toggleBookmark'])
+        ->name('articles.bookmark');
+
+    Route::get('/articles/{article}/like-bookmark-status', [LikeBookmarkController::class, 'getStatus'])
+        ->name('articles.status');
 });
 /*
 Route::get('/about', function () {

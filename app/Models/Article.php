@@ -22,6 +22,12 @@ class Article extends Model
         'views',
         'published_at',
     ];
+     protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+        ];
+    }
 
     // Otomatis bikin slug dari title
     public static function boot()
@@ -62,6 +68,18 @@ class Article extends Model
     public function tags()
     {
         return $this->belongsToMany(Tag::class, 'article_tag');
+    }
+
+    // Artikel punya banyak likes
+    public function likes()
+    {
+        return $this->hasMany(ArticleLike::class);
+    }
+
+    // Artikel punya banyak bookmarks
+    public function bookmarks()
+    {
+        return $this->hasMany(ArticleBookmark::class);
     }
 
     // Scope: cuma article yang published

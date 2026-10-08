@@ -1,6 +1,6 @@
 @props(['articles' => []])
 
-<aside class="rounded-2xl border border-zinc-200 bg-white p-5">
+<aside class="bg-white px-5 mt-2">
     {{-- Header --}}
     <div class="mb-5 flex items-start justify-between">
         <div>
@@ -29,7 +29,7 @@
     </div>
 
     @if(count($articles) > 0)
-        <ol>
+        <ol class="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 p-4">
             @foreach($articles as $index => $article)
                 <li class="border-b border-zinc-100 last:border-b-0">
                     <a

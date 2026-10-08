@@ -1,6 +1,6 @@
 @props(['articles' => []])
 
-<aside class="rounded-2xl border border-zinc-200 bg-white p-5">
+<aside class="bg-white p-5">
     <div class="mb-4">
         <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900">
             Trending This Week
@@ -10,7 +10,7 @@
     </div>
 
     @if(count($articles) > 0)
-        <ol class="divide-y divide-zinc-100">
+        <ol class="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 p-4">
 
             @foreach($articles as $index => $article)
                 <li>

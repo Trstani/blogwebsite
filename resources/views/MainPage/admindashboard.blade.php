@@ -1,6 +1,6 @@
 <x-layouts.app title="Admin Dashboard">
 
-    <div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
 
         <div class="flex items-center justify-between mb-6 sm:mb-8">
             <div>

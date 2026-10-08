@@ -1,6 +1,6 @@
 @props(['tags' => []])
 
-<aside class="rounded-2xl border border-zinc-200 bg-white p-5">
+<aside class="bg-white px-5">
 
     {{-- Header --}}
     <div class="mb-4">
@@ -15,7 +15,7 @@
     @if(count($tags) > 0)
 
         {{-- Topic Chips --}}
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 divide-y divide-zinc-100 rounded-2xl border border-zinc-200 p-4">
 
             @foreach($tags as $tag)
 

@@ -150,7 +150,7 @@ class ArticleController extends Controller
             'sections.*.type' => 'required|in:text,image,video,gif',
             'sections.*.content' => 'required|string|max:10000',
             'sections.*.public_id' => 'nullable|string',
-            'tag_ids' => 'nullable|array|max:10',
+            'tag_ids' => 'nullable|array|max:5',
             'tag_ids.*' => 'integer|exists:tags,id',
         ]);
 

@@ -228,17 +228,17 @@
         @endforeach
 
 
-        {{-- =========================================================
-             SUPPORTING ARTICLES — 4 & 5
-             ========================================================= --}}
+       {{-- =========================================================
+            SUPPORTING ARTICLES — 4 & 5
+            ========================================================= --}}
         @foreach($articles->slice(2, 2) as $article)
 
-            <a
-                href="/blog/{{ $article->slug ?? '#' }}"
-                class="group relative block overflow-hidden rounded-2xl bg-black
-                       md:col-span-6
-                       min-h-[210px]"
-            >
+        <a
+            href="/blog/{{ $article->slug ?? '#' }}"
+            class="group relative block overflow-hidden rounded-2xl bg-black
+                {{ $loop->first ? 'md:col-span-7' : 'md:col-span-5' }}
+                min-h-[210px]"
+        >
 
                 {{-- Cover Image --}}
                 @if($article->thumbnail ?? false)
@@ -246,21 +246,18 @@
                         src="{{ imageUrl($article->thumbnail) }}"
                         alt="{{ $article->title ?? '' }}"
                         class="absolute inset-0 h-full w-full object-cover
-                               transition-transform duration-700
-                               group-hover:scale-105"
+                            transition-transform duration-700
+                            group-hover:scale-105"
                     />
                 @else
                     <div class="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black"></div>
                 @endif
 
-
                 {{-- Gradient Overlay --}}
                 <div class="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent"></div>
 
-
                 {{-- Cyan Accent --}}
                 <div class="absolute left-0 top-0 h-[3px] w-16 bg-cyan-400"></div>
-
 
                 {{-- Content --}}
                 <div class="absolute inset-x-0 bottom-0 p-4 md:p-5">
@@ -275,16 +272,14 @@
                         </div>
                     @endif
 
-
                     <h3
                         class="line-clamp-2 text-base font-bold leading-snug tracking-tight
-                               text-white transition-colors
-                               md:text-lg
-                               group-hover:text-cyan-50"
+                            text-white transition-colors
+                            md:text-lg
+                            group-hover:text-cyan-50"
                     >
                         {{ $article->title ?? 'Article Title' }}
                     </h3>
-
 
                     <div class="mt-2 flex items-center gap-2 text-[11px] text-white/60">
 

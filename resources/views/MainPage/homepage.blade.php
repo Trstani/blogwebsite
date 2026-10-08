@@ -159,62 +159,22 @@
 
 
     {{-- =========================================================
-         RECENT ARTICLES (with integrated Search)
+         RECENT ARTICLES (Display-Only)
          ========================================================= --}}
     <section class="max-w-7xl mx-auto px-6 py-16">
 
-        {{-- Header + Search --}}
-        <div class="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-
-            <div>
-                <div class="mb-3 flex items-center gap-3">
-                    <span class="h-px w-8 bg-cyan-500"></span>
-                    <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-600">
-                        Browse
-                    </span>
-                </div>
-
-                <h2 class="text-3xl font-bold tracking-tight text-zinc-900 md:text-4xl">
-                    Recent Articles
-                </h2>
+        {{-- Header --}}
+        <div class="mb-10">
+            <div class="mb-3 flex items-center gap-3">
+                <span class="h-px w-8 bg-cyan-500"></span>
+                <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-600">
+                    Browse
+                </span>
             </div>
 
-            {{-- Search — utility tool for Recent Articles --}}
-            <form method="GET" action="{{ route('home') }}" class="w-full md:max-w-sm">
-                <div class="relative">
-                    <svg class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-
-                    <input
-                        type="text"
-                        name="search"
-                        value="{{ $search }}"
-                        placeholder="Search articles..."
-                        class="w-full rounded-full border border-zinc-200 bg-white py-2.5 pl-11 pr-24
-                               text-sm text-zinc-900 placeholder:text-zinc-400
-                               transition-all focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100"
-                    />
-
-                    <button
-                        type="submit"
-                        class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full
-                               bg-zinc-900 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider
-                               text-white transition-colors hover:bg-cyan-500 hover:text-black"
-                    >
-                        Search
-                    </button>
-                </div>
-
-                @if($search)
-                    <p class="mt-3 text-xs text-zinc-500">
-                        Hasil untuk "<span class="font-medium text-zinc-900">{{ $search }}</span>"
-                    </p>
-                @endif
-            </form>
-
+            <h2 class="text-3xl font-bold tracking-tight text-zinc-900 md:text-4xl">
+                Recent Articles
+            </h2>
         </div>
 
 
@@ -274,7 +234,7 @@
                     <h2 class="max-w-2xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl md:text-5xl">
                         Be part of
                         <span class="font-normal text-white/90">
-                            Create <span class="text-cyan-400">E</span>ve.
+                            Create <span class="text-cyan-400">Eve</span>.
                         </span>
                     </h2>
 
