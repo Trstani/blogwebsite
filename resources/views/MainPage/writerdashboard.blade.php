@@ -1,4 +1,5 @@
 <x-layouts.app title="Writer Dashboard">
+    @include('components.modals.modal-helpers')
 
     <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
 
@@ -180,29 +181,21 @@
 
         function openDeleteConfirm(form, articleTitle = '') {
             pendingDeleteForm = form;
-            const modal = document.getElementById('deleteConfirmModal');
-            const message = document.getElementById('deleteMessage');
-
-            if (articleTitle) {
-                message.textContent = `Are you sure you want to delete "${articleTitle}"? This action cannot be undone.`;
-            }
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeDeleteConfirm() {
-            const modal = document.getElementById('deleteConfirmModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            pendingDeleteForm = null;
+            showConfirm(
+                'Delete Article?',
+                articleTitle ? `Are you sure you want to delete "${articleTitle}"? This action cannot be undone.` : 'Are you sure you want to delete this article? This action cannot be undone.',
+                confirmDelete,
+                'Delete',
+                'Cancel',
+                true
+            );
         }
 
         function confirmDelete() {
             if (pendingDeleteForm) {
                 pendingDeleteForm.submit();
             }
-            closeDeleteConfirm();
+            pendingDeleteForm = null;
         }
 
         function openModal() {

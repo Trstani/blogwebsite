@@ -1,4 +1,5 @@
 <x-layouts.app title="Admin Dashboard">
+    @include('components.modals.modal-helpers')
 
     <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
 
@@ -14,7 +15,17 @@
             <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
                 {{ session('success') }}
             </div>
-        @endif
+        
+            {{-- Error Message --}}
+            @elseif(session('error'))
+                <div
+                    role="alert"
+                    class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                >
+                    {{ session('error') }}
+                </div>
+            @endif
+
 
         {{-- =========================================================
              TAB NAVIGATION — horizontal scroll slider on mobile
@@ -968,38 +979,41 @@
          * Delete a tag with confirmation
          */
         function deleteTag(tagId) {
-            if (!confirm('Are you sure you want to delete this tag?')) {
-                return;
-            }
+            showConfirm(
+                'Delete Tag?',
+                'Are you sure you want to delete this tag? This action cannot be undone.',
+                async () => {
+                    const csrfToken = document.querySelector('input[name="_token"]').value;
 
-            const csrfToken = document.querySelector('input[name="_token"]').value;
+                    try {
+                        const response = await fetch(`/admin/tags/${tagId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                        });
 
-            fetch(`/admin/tags/${tagId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw data;
+                        }
+
+                        const data = await response.json();
+                        if (data.success) {
+                            refreshTagsList();
+                        } else {
+                            showAlert('Error', data.message || 'Failed to delete tag.', 'error');
+                        }
+                    } catch (err) {
+                        showAlert('Error', err.message || 'An error occurred while deleting the tag.', 'error');
+                    }
                 },
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw data;
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    refreshTagsList();
-                } else {
-                    alert(data.message || 'Failed to delete tag.');
-                }
-            })
-            .catch(err => {
-                alert(err.message || 'An error occurred while deleting the tag.');
-            });
+                'Delete',
+                'Cancel',
+                true
+            );
         }
 
         /**

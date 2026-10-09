@@ -337,6 +337,7 @@
 </head>
 
 <body class="bg-white min-h-screen font-sans">
+    @include('components.modals.modal-helpers')
 
     {{-- =========================================================
          TOP NAVBAR
@@ -896,11 +897,11 @@
                     closeUnsavedChangesModal();
                     if (destination) window.location.href = destination;
                 } else {
-                    alert('Error saving draft: ' + (response.error || response.message || 'Unknown error'));
+                    showAlert('Error saving draft', 'Error saving draft: ' + (response.error || response.message || 'Unknown error'), 'error');
                 }
             } catch (err) {
                 console.error('Save error:', err);
-                alert('Error saving draft: ' + err.message);
+                showAlert('Error saving draft', err.message, 'error');
             } finally {
                 isSaving = false;
                 const button = document.querySelector('[onclick="handleSaveDraftFromModal()"]');
@@ -976,7 +977,7 @@
             const container = document.getElementById('sections');
             const currentSections = container.querySelectorAll('[data-type]');
             if (currentSections.length >= LIMITS.maxSections) {
-                alert(`Maximum ${LIMITS.maxSections} sections allowed.`);
+                showAlert('Maximum sections reached', `Maximum ${LIMITS.maxSections} sections allowed.`, 'warning');
                 return;
             }
             markDirty();
@@ -1167,7 +1168,7 @@
             const block = btn.closest('[data-type]');
             const container = document.getElementById('sections');
             if (container.children.length <= 1) {
-                alert('You must have at least one section.');
+                showAlert('Minimum sections required', 'You must have at least one section.', 'warning');
                 return;
             }
             const sectionId = block.getAttribute('data-section-id');
@@ -1393,7 +1394,7 @@
         async function saveDraft() {
             if (isSaving) return;
             if (!currentArticleId) {
-                alert('Article belum tersimpan. Tunggu sebentar...');
+                showAlert('Article not saved', 'Article belum tersimpan. Tunggu sebentar...', 'warning');
                 return;
             }
             try {
@@ -1405,13 +1406,13 @@
                 if (data.success) {
                     updateSectionIdsAfterSave(data.sections);
                     clearDirty();
-                    alert('Draft saved!');
+                    showAlert('Success', 'Draft saved!', 'success');
                 } else {
-                    alert('Error saving draft: ' + (data.error || data.message || 'Unknown error'));
+                    showAlert('Error saving draft', 'Error saving draft: ' + (data.error || data.message || 'Unknown error'), 'error');
                 }
             } catch (err) {
                 console.error('Save error:', err);
-                alert('Error saving draft: ' + err.message);
+                showAlert('Error saving draft', err.message, 'error');
             } finally {
                 isSaving = false;
                 updateSaveStatus();
@@ -1453,7 +1454,7 @@
         async function submitArticle() {
             if (isSaving) return;
             if (!currentArticleId) {
-                alert('Article belum tersimpan. Tunggu sebentar...');
+                showAlert('Article not saved', 'Article belum tersimpan. Tunggu sebentar...', 'warning');
                 return;
             }
             try {
@@ -1526,7 +1527,7 @@
 
         function openTagSelector() {
             if (selectedTagIds.length >= 5) {
-                alert('Maximum 5 tags per article');
+                showAlert('Maximum tags reached', 'Maximum 5 tags per article', 'warning');
                 return;
             }
             loadAvailableTags().then(() => {
@@ -1596,7 +1597,7 @@
             if (checkbox.checked) {
                 if (selectedTagIds.length >= 5) {
                     checkbox.checked = false;
-                    alert('Maximum 5 tags per article');
+                    showAlert('Maximum tags reached', 'Maximum 5 tags per article', 'warning');
                     return;
                 }
                 if (!selectedTagIds.includes(tagId)) selectedTagIds.push(tagId);
@@ -1669,7 +1670,7 @@
 
         function validateSections(sections) {
             if (sections.length > LIMITS.maxSections) {
-                alert(`Maximum ${LIMITS.maxSections} sections allowed.`);
+                showAlert('Too many sections', `Maximum ${LIMITS.maxSections} sections allowed.`, 'error');
                 return false;
             }
             for (let i = 0; i < sections.length; i++) {
@@ -1677,7 +1678,7 @@
                 if (section.type === 'text') {
                     const charCount = getHtmlTextLength(section.content);
                     if (charCount > LIMITS.maxCharsPerSection) {
-                        alert(`Section ${i + 1} exceeds ${LIMITS.maxCharsPerSection.toLocaleString()} character limit.`);
+                        showAlert('Section too long', `Section ${i + 1} exceeds ${LIMITS.maxCharsPerSection.toLocaleString()} character limit.`, 'error');
                         return false;
                     }
                 }
@@ -1749,7 +1750,7 @@
             })
             .catch(err => {
                 console.error('Load error:', err);
-                alert('Failed to load article: ' + err.message);
+                showAlert('Failed to load article', 'Failed to load article: ' + err.message, 'error');
                 isInitializing = false;
             });
         }
@@ -1901,7 +1902,7 @@
                 closeSectionDeleteConfirm();
             } catch (err) {
                 console.error('Delete section error:', err);
-                alert('Error deleting section: ' + err.message);
+                showAlert('Error deleting section', 'Error deleting section: ' + err.message, 'error');
                 closeSectionDeleteConfirm();
             }
         }
@@ -1938,12 +1939,12 @@
                     sessionStorage.removeItem('articleCoverPublicId');
                     console.log('Article created, ID:', currentArticleId);
                 } else {
-                    alert('Gagal membuat article: ' + JSON.stringify(data));
+                    showAlert('Failed to create article', 'Gagal membuat article: ' + JSON.stringify(data), 'error');
                 }
             })
             .catch(err => {
                 console.error('Error creating article:', err);
-                alert('Error creating article: ' + err.message);
+                showAlert('Error creating article', 'Error creating article: ' + err.message, 'error');
             });
         }
 

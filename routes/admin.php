@@ -150,13 +150,33 @@ Route::post('/admin/users/{user}/demote', function (User $user) {
     return back()->with('success', $user->name.' demoted to writer.');
 })->name('admin.demote')->middleware(['auth', 'admin']);
 
-Route::post('/admin/articles/{article}/feature', function (Article $article) {
-    $article->is_featured = ! $article->is_featured;
-    $article->save();
-    $status = $article->is_featured ? 'Added to featured' : 'Removed from featured';
 
-    return back()->with('success', $status);
+Route::post('/admin/articles/{article}/feature', function (Article $article) {
+    // Unfeature is always allowed, even when the limit is reached.
+    if ($article->is_featured) {
+        $article->is_featured = false;
+        $article->save();
+
+        return back()->with('success', 'Removed from featured.');
+    }
+
+    // Count currently featured articles.
+    $featuredCount = Article::where('is_featured', true)->count();
+
+    // Prevent adding a sixth featured article.
+    if ($featuredCount >= 5) {
+        return back()->with(
+            'error',
+            'You can only feature up to 5 articles. Unfeature an existing article first.'
+        );
+    }
+
+    $article->is_featured = true;
+    $article->save();
+
+    return back()->with('success', 'Added to featured.');
 })->name('admin.feature')->middleware(['auth', 'admin']);
+
 
 // ====== TAG MANAGER ROUTES ======
 // Only store, update, and destroy are used by the AJAX modal in the dashboard

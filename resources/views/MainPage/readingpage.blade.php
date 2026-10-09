@@ -1,4 +1,5 @@
 <x-layouts.app title="{{ $article->title }}">
+    @include('components.modals.modal-helpers')
     <style>
         /* ========================================
            Rich Article Content — Editorial + Responsive
@@ -1078,7 +1079,7 @@
                 const content = document.getElementById('commentContent').value.trim();
 
                 if (!content) {
-                    alert('Please enter a comment.');
+                    showAlert('Please enter a comment', 'Comment cannot be empty.', 'warning');
                     return;
                 }
 
@@ -1139,11 +1140,11 @@
                             heading.textContent = `Comments (${count})`;
                         }
                     } else {
-                        alert(data.message || 'Failed to post comment.');
+                        showAlert('Failed to post comment', data.message || 'An error occurred.', 'error');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('An error occurred while posting your comment.');
+                    showAlert('Error', 'An error occurred while posting your comment.', 'error');
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
@@ -1172,7 +1173,7 @@
                     const commentId = this.dataset.commentId;
 
                     if (!content) {
-                        alert('Please enter a reply.');
+                        showAlert('Please enter a reply', 'Reply cannot be empty.', 'warning');
                         return;
                     }
 
@@ -1202,11 +1203,11 @@
                             toggleReplyForm(commentId);
                             location.reload();
                         } else {
-                            alert(data.message || 'Failed to post reply.');
+                            showAlert('Failed to post reply', data.message || 'An error occurred.', 'error');
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        alert('An error occurred while posting your reply.');
+                        showAlert('Error', 'An error occurred while posting your reply.', 'error');
                     } finally {
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;

@@ -1,9 +1,10 @@
 @props(['article'])
+
 <a href="/writer/write/{{ $article->id }}" class="block group">
-    <div class="flex gap-5 p-4 bg-white border border-gray-100 rounded-lg hover:border-gray-300 transition-colors">
+    <div class="flex flex-col gap-3 p-3 bg-white border border-gray-100 rounded-lg hover:border-gray-300 transition-colors sm:flex-row sm:gap-5 sm:p-4">
 
         {{-- Thumbnail --}}
-        <div class="flex-shrink-0 w-32 h-24 bg-gray-100 rounded-md overflow-hidden">
+        <div class="flex-shrink-0 w-full aspect-[16/9] bg-gray-100 rounded-md overflow-hidden sm:w-32 sm:h-24 sm:aspect-auto">
             @if($article->thumbnail ?? false)
                 <img src="{{ imageUrl($article->thumbnail) }}" alt="{{ $article->title }}" class="w-full h-full object-cover" />
             @else
@@ -21,7 +22,7 @@
             @if($article->category ?? false)
                 <span class="text-xs text-gray-400">{{ $article->category }}</span>
             @endif
-            <h3 class="text-base font-semibold text-black leading-snug truncate">{{ $article->title ?? 'Article Title' }}</h3>
+            <h3 class="text-base font-semibold text-black leading-snug line-clamp-2 sm:truncate">{{ $article->title ?? 'Article Title' }}</h3>
             <p class="text-sm text-gray-500 mt-1 line-clamp-2 leading-relaxed">{{ $article->description ?? '' }}</p>
             <div class="mt-2 flex items-center space-x-3 text-xs text-gray-400">
                 @if($article->author ?? false)
@@ -35,22 +36,23 @@
         </div>
 
         {{-- Status + Delete --}}
-        <div class="flex-shrink-0 flex flex-col items-end gap-2">
+        <div class="flex-shrink-0 flex items-center justify-between gap-2 sm:flex-col sm:items-end sm:justify-start">
             {{-- Status Badge --}}
             @if(($article->status ?? '') === 'published')
-                <span class="text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">Published</span>
+                <span class="text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full whitespace-nowrap">Published</span>
             @elseif(($article->status ?? '') === 'pending')
-                <span class="text-xs font-medium text-yellow-700 bg-yellow-50 px-2.5 py-1 rounded-full">Pending</span>
+                <span class="text-xs font-medium text-yellow-700 bg-yellow-50 px-2.5 py-1 rounded-full whitespace-nowrap">Pending</span>
             @elseif(($article->status ?? '') === 'rejected')
-                <span class="text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">Rejected</span>
+                <span class="text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full whitespace-nowrap">Rejected</span>
             @else
-                <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">Draft</span>
+                <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full whitespace-nowrap">Draft</span>
             @endif
 
             {{-- Delete Button --}}
             @if($article->id ?? false)
                 <form method="POST" action="{{ route('articles.delete', $article->id) }}"
-                    onsubmit="event.preventDefault(); openDeleteConfirm(this, '{{ $article->title }}');" class="mt-1">
+                    onsubmit="event.preventDefault(); openDeleteConfirm(this, '{{ $article->title }}');"
+                    class="sm:mt-1">
                     @csrf
                     @method('DELETE')
                     <button type="submit"

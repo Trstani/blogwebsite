@@ -1,4 +1,5 @@
 <x-layouts.app title="Profile">
+    @include('components.modals.modal-helpers')
 
     <div class="max-w-6xl mx-auto px-6 py-12">
 
@@ -37,7 +38,7 @@
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
-                                        onclick="return confirm('Remove avatar?')"
+                                        onclick="event.preventDefault(); showConfirm('Remove Avatar?', 'Are you sure you want to remove your avatar? This action cannot be undone.', () => this.form.submit(), 'Remove', 'Cancel', true);"
                                         class="px-3 py-1.5 text-xs font-medium text-white bg-red-500/80 backdrop-blur-sm rounded-md hover:bg-red-600 transition-colors">
                                     Remove
                                 </button>
@@ -222,12 +223,12 @@
                     location.reload();
                 } else {
                     console.error('Failed to save avatar:', data);
-                    alert('Failed to save avatar');
+                    showAlert('Error', 'Failed to save avatar', 'error');
                 }
             })
             .catch(err => {
                 console.error('Avatar upload error:', err);
-                alert('Avatar upload failed: ' + err.message);
+                showAlert('Upload Error', 'Avatar upload failed: ' + err.message, 'error');
             });
         }
     </script>
