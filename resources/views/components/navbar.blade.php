@@ -150,7 +150,7 @@
 
                                 <div id="popularTagsSection" class="mb-6">
 
-                                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Yang sedang ramai dicari</h3>
+                                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Popular Search</h3>
 
                                     <div class="flex flex-wrap gap-2">
 
@@ -803,7 +803,7 @@
 
                 <div class="flex items-center justify-between mb-3">
 
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Pencarian terbaru</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Recent Search</h3>
 
                     <button type="button" onclick="clearRecentSearches()" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">
 

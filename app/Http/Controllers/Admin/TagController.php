@@ -12,24 +12,31 @@ class TagController extends Controller
     /**
      * Store a newly created tag in storage.
      */
+    
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:tags,name'],
         ]);
 
-        // Auto-generate slug from name
+        $validated['name'] = trim($validated['name']);
         $validated['slug'] = Str::slug($validated['name']);
+
+        // Catat user yang membuat tag melalui Taxonomy.
+        $validated['created_by'] = $request->user()->id;
 
         $tag = Tag::create($validated);
 
-        // Return JSON for AJAX requests
+        // Return JSON for AJAX requests.
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Tag created successfully.',
-                'tag' => $tag->load(['articles' => function($q) { $q->where('status', 'published'); }])
-                    ->makeVisible('articles_count')
+                'tag' => $tag->load([
+                    'articles' => function ($q) {
+                        $q->where('status', 'published');
+                    },
+                ])->makeVisible('articles_count'),
             ]);
         }
 
@@ -37,6 +44,7 @@ class TagController extends Controller
             ->route('admin.dashboard', ['tab' => 'taxonomy'])
             ->with('success', 'Tag created successfully.');
     }
+
 
     /**
      * Update the specified tag in storage.

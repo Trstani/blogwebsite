@@ -48,8 +48,135 @@
                 @endif
             </div>
 
-            <h1 class="mt-4 text-xl font-bold text-black">{{ $user->name }}</h1>
-            <p class="text-sm text-gray-400">{{ $user->email }}</p>
+            
+            @php
+                $editingName = $errors->has('name');
+            @endphp
+
+            <div class="mt-4 flex flex-col items-center text-center">
+                {{-- Tampilan nama normal --}}
+                <div
+                    id="display-name-view"
+                    class="{{ $editingName ? 'hidden' : 'flex' }} items-center gap-2"
+                >
+                    <h1
+                        id="display-name-text"
+                        class="text-xl font-bold text-black"
+                    >{{ $user->name }}</h1>
+
+                    @if ($isOwner)
+                        <button
+                            type="button"
+                            id="edit-display-name"
+                            class="rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                            aria-label="Edit nama profil"
+                            title="Edit nama"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="17"
+                                height="17"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                            </svg>
+                        </button>
+                    @endif
+                </div>
+
+                {{-- Editor hanya muncul saat tombol pensil diklik --}}
+                @if ($isOwner)
+                    <form
+                        id="display-name-form"
+                        action="{{ route('profile.name', $user->slug) }}"
+                        method="POST"
+                        class="{{ $editingName ? '' : 'hidden' }} mt-2"
+                    >
+                        @csrf
+                        @method('PUT')
+
+                        <div class="flex max-w-md items-center gap-2">
+                            <input
+                                type="text"
+                                id="display-name-input"
+                                name="name"
+                                value="{{ old('name', $user->name) }}"
+                                maxlength="255"
+                                required
+                                class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                aria-label="Nama profil"
+                            >
+
+                            <button
+                                type="submit"
+                                class="shrink-0 rounded-lg bg-blue-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-800"
+                            >
+                                Simpan
+                            </button>
+
+                            <button
+                                type="button"
+                                id="cancel-display-name"
+                                class="shrink-0 rounded-lg px-3 py-2 text-sm text-gray-500 transition hover:bg-gray-100"
+                            >
+                                Batal
+                            </button>
+                        </div>
+
+                        @error('name')
+                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                        @enderror
+                    </form>
+                @endif
+
+                <p class="mt-1 text-sm text-gray-400">{{ $user->email }}</p>
+            </div>
+
+            @if ($isOwner)
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const view = document.getElementById('display-name-view');
+                        const form = document.getElementById('display-name-form');
+                        const input = document.getElementById('display-name-input');
+                        const editButton = document.getElementById('edit-display-name');
+                        const cancelButton = document.getElementById('cancel-display-name');
+
+                        if (!view || !form || !input || !editButton || !cancelButton) {
+                            return;
+                        }
+
+                        function openEditor() {
+                            view.classList.add('hidden');
+                            form.classList.remove('hidden');
+                            input.focus();
+                            input.select();
+                        }
+
+                        function closeEditor() {
+                            input.value = @json($user->name);
+                            form.classList.add('hidden');
+                            view.classList.remove('hidden');
+                        }
+
+                        editButton.addEventListener('click', openEditor);
+                        cancelButton.addEventListener('click', closeEditor);
+
+                        input.addEventListener('keydown', function (event) {
+                            if (event.key === 'Escape') {
+                                event.preventDefault();
+                                closeEditor();
+                            }
+                        });
+                    });
+                </script>
+            @endif
+
         </div>
 
         {{-- Bio Section --}}

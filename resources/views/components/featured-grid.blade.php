@@ -7,9 +7,9 @@
 
     {{-- Section Eyebrow --}}
     <div class="mb-5 flex items-center gap-3">
-        <span class="h-px w-8 bg-cyan-500"></span>
+        <span class="h-px w-8 bg-cyan-400"></span>
 
-        <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500">
+        <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-400">
             FEATURED
         </h2>
     </div>

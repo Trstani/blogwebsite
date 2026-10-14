@@ -12,9 +12,9 @@
 
                 {{-- Eyebrow --}}
                 <div class="flex items-center gap-3 mb-4">
-                    <span class="w-8 h-px bg-[#0f2747]"></span>
+                    <span class="w-8 h-px bg-cyan-400"></span>
 
-                    <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0f2747]">
+                    <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-400">
                         Latest Stories
                     </span>
                 </div>

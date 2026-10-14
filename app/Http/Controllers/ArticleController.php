@@ -144,6 +144,8 @@ class ArticleController extends Controller
         }
 
         $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'sections' => 'required|array|min:1|max:20',
             'sections.*.id' => 'nullable|integer',
             'sections.*.client_id' => 'nullable|string|max:100',
@@ -169,13 +171,15 @@ class ArticleController extends Controller
             $sanitizer,
             &$savedSections
         ) {
-            /*
-            * Get all existing sections for this article.
-            */
+
+            // Update article metadata
+            $article->title = trim($request->title);
+            $article->description = $request->description;
+            $article->save();
+
             $existingSections = $article->sections()
                 ->get()
                 ->keyBy('id');
-
             $incomingSectionIds = [];
 
             foreach ($request->sections as $index => $section) {

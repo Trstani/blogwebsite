@@ -34,7 +34,7 @@
     {{-- =========================================================
          FEATURED + SIDEBARS
          ========================================================= --}}
-   <section class="max-w-7xl mx-auto px-6 pt-12 pb-16">
+   <section class="max-w-7xl mx-auto px-6 pt-12">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
             {{-- LEFT: Featured Grid --}}
@@ -112,7 +112,7 @@
                                     </div>
 
                                     <div class="-mt-1 text-lg font-light tracking-tight text-zinc-900">
-                                        <span>E</span><span class="text-cyan-400">ve</span>
+                                        <span class="text-cyan-400">Eve</span>
                                     </div>
                                 </div>
                             </div>
@@ -161,13 +161,13 @@
     {{-- =========================================================
          RECENT ARTICLES (Display-Only)
          ========================================================= --}}
-    <section class="max-w-7xl mx-auto px-6 py-16">
+    <section class="max-w-7xl mx-auto px-6 pt-2">
 
         {{-- Header --}}
         <div class="mb-10">
             <div class="mb-3 flex items-center gap-3">
-                <span class="h-px w-8 bg-cyan-500"></span>
-                <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-600">
+                <span class="h-px w-8 bg-cyan-400"></span>
+                <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-400">
                     Browse
                 </span>
             </div>
@@ -226,7 +226,7 @@
                 <div class="md:col-span-2">
                     <div class="mb-4 flex items-center gap-3 sm:mb-5">
                         <span class="h-px w-6 bg-cyan-400 sm:w-8"></span>
-                        <span class="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300 sm:text-[10px] sm:tracking-[0.2em]">
+                        <span class="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-400 sm:text-[10px] sm:tracking-[0.2em]">
                             Get Started
                         </span>
                     </div>

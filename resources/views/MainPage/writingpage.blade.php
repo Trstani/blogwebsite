@@ -1544,6 +1544,94 @@
                 }
             });
         }
+        
+        async function createTagFromModal() {
+            const searchInput = document.getElementById('tagSearchInput');
+            const name = searchInput?.value.trim();
+
+            if (!name) {
+                showAlert('Tag name required', 'Enter a tag name first.', 'warning');
+                return;
+            }
+
+            if (selectedTagIds.length >= 5) {
+                showAlert('Maximum tags reached', 'Maximum 5 tags per article.', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/writer/tags', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || 'Failed to create tag.'
+                    );
+                }
+
+                const tag = {
+                    ...data.tag,
+                    id: Number(data.tag.id),
+                    articles_count: data.tag.articles_count ?? 0
+                };
+
+                // Update the local list without duplicating an existing tag.
+                const index = availableTags.findIndex(
+                    item => Number(item.id) === tag.id
+                );
+
+                if (index === -1) {
+                    availableTags.push(tag);
+                } else {
+                    availableTags[index] = {
+                        ...availableTags[index],
+                        ...tag
+                    };
+                }
+
+                availableTags.sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                );
+
+                filteredTags = [...availableTags];
+
+                // Select the new or existing tag for this article.
+                if (!selectedTagIds.includes(tag.id)) {
+                    selectedTagIds.push(tag.id);
+                }
+
+                renderTagsInModal();
+                renderSelectedTags();
+                markDirty();
+
+                showAlert(
+                    data.created ? 'Tag created' : 'Tag already exists',
+                    data.created
+                        ? `"${tag.name}" has been created and selected.`
+                        : `"${tag.name}" already exists and has been selected.`,
+                    'success'
+                );
+
+            } catch (error) {
+                console.error('Create tag error:', error);
+
+                showAlert(
+                    'Unable to create tag',
+                    error.message || 'Please try again.',
+                    'error'
+                );
+            }
+        }
+
 
         function closeTagSelector() {
             const modal = document.getElementById('tagSelectorModal');
@@ -1555,39 +1643,82 @@
             if (searchInput) searchInput.value = '';
         }
 
+        
         function renderTagsInModal() {
             const container = document.getElementById('tagsListContainer');
             if (!container) return;
-            container.innerHTML = '';
-            const tagsToRender = filteredTags.length > 0 ? filteredTags : availableTags;
-            if (tagsToRender.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No tags available</p>';
-                return;
-            }
-            tagsToRender.forEach(tag => {
-                const isSelected = selectedTagIds.includes(tag.id);
-                const tagElement = document.createElement('div');
-                tagElement.className = 'flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer';
-                tagElement.innerHTML = `
-                    <input type="checkbox" id="tag-${tag.id}" ${isSelected ? 'checked' : ''} onchange="toggleTagInModal(${tag.id})" class="w-4 h-4 rounded border-gray-300 text-black focus:ring-black">
-                    <label for="tag-${tag.id}" class="flex-1 text-sm text-gray-700 cursor-pointer">${escapeHtml(tag.name)}</label>
-                `;
-                container.appendChild(tagElement);
-            });
-        }
 
+            container.innerHTML = '';
+
+            const searchInput = document.getElementById('tagSearchInput');
+            const query = searchInput?.value.trim() || '';
+            const tagsToRender = filteredTags;
+
+            tagsToRender.forEach(tag => {
+                const isSelected = selectedTagIds.some(
+                    id => Number(id) === Number(tag.id)
+                );
+
+                const row = document.createElement('div');
+                row.className =
+                    'flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `tag-${tag.id}`;
+                checkbox.checked = isSelected;
+                checkbox.className =
+                    'w-4 h-4 rounded border-gray-300 text-black focus:ring-black';
+                checkbox.addEventListener('change', () => {
+                    toggleTagInModal(Number(tag.id));
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = `tag-${tag.id}`;
+                label.className =
+                    'flex-1 text-sm text-gray-700 cursor-pointer';
+                label.textContent = tag.name;
+
+                row.append(checkbox, label);
+
+                container.appendChild(row);
+            });
+
+            // Tampilkan opsi create hanya jika nama persis belum ada.
+            const exactMatch = availableTags.some(
+                tag => tag.name.trim().toLowerCase() === query.toLowerCase()
+            );
+
+            if (query && !exactMatch) {
+                const createButton = document.createElement('button');
+                createButton.type = 'button';
+                createButton.className =
+                    'w-full p-3 text-left text-sm text-blue-600 hover:bg-gray-50';
+                createButton.textContent = `+ Create tag "${query}"`;
+                createButton.addEventListener('click', createTagFromModal);
+                container.appendChild(createButton);
+            }
+
+            if (tagsToRender.length === 0 && !query) {
+                container.textContent = 'No tags available';
+            } else if (tagsToRender.length === 0 && query && exactMatch) {
+                container.textContent = 'Tag already exists.';
+            }
+        }
+        
         function filterTagsInModal() {
             const searchInput = document.getElementById('tagSearchInput');
             if (!searchInput) return;
+
             const query = searchInput.value.toLowerCase().trim();
-            if (!query) {
-                filteredTags = [...availableTags];
-            } else {
-                filteredTags = availableTags.filter(tag =>
+
+            filteredTags = query
+                ? availableTags.filter(tag =>
                     tag.name.toLowerCase().includes(query) ||
                     tag.slug.toLowerCase().includes(query)
-                );
-            }
+                )
+                : [...availableTags];
+
             renderTagsInModal();
         }
 
@@ -2254,7 +2385,7 @@
         ></div>
 
         <div
-            class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-5 sm:p-6 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto"
+            class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-5 sm:p-6 max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col"
         >
 
             {{-- Modal Header --}}
@@ -2297,7 +2428,7 @@
             {{-- Tags List --}}
             <div
                 id="tagsListContainer"
-                class="space-y-2 max-h-72 sm:max-h-96 overflow-y-auto"
+                class="space-y-2 min-h-0 flex-1 overflow-y-auto"
             >
                 {{-- Tags will be rendered here --}}
             </div>

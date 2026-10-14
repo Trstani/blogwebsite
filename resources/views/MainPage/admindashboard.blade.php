@@ -349,13 +349,44 @@
                             + Add Tag
                         </button>
                     </div>
+                    
+                    {{-- Search and Filter Tags --}}
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row">
+                        <div class="relative flex-1">
+                            <input
+                                id="tagAdminSearch"
+                                type="search"
+                                placeholder="Search tags by name..."
+                                oninput="filterAdminTags()"
+                                class="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                            >
+                        </div>
+
+                        <select
+                            id="tagUsageFilter"
+                            onchange="filterAdminTags()"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-black focus:outline-none sm:w-52"
+                        >
+                            <option value="all">All tags</option>
+                            <option value="used">Used by articles</option>
+                            <option value="unused">Unused (0 articles)</option>
+                        </select>
+                    </div>
+
+                    <div
+                        id="tagFilterEmpty"
+                        class="hidden py-6 text-center text-sm text-gray-500"
+                    >
+                        No tags match your search or filter.
+                    </div>
+
 
                     {{-- Tags List --}}
                     <div id="tagsContainer">
                         @if($tags->count() > 0)
                             <div class="space-y-3">
                                 @foreach($tags as $tag)
-                                    <div class="tag-item flex items-center justify-between gap-3 p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors sm:p-4" data-tag-id="{{ $tag->id }}">
+                                    <div class="tag-item flex items-center justify-between gap-3 p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors sm:p-4" data-tag-id="{{ $tag->id }}" data-tag-name="{{ strtolower($tag->name) }}" data-article-count="{{ $tag->articles_count }}">
 
                                         {{-- Tag Info --}}
                                         <div class="min-w-0">
@@ -839,6 +870,42 @@
         }
 
         // ========== TAG MODAL FUNCTIONS ==========
+
+        function filterAdminTags() {
+            const searchInput = document.getElementById('tagAdminSearch');
+            const usageFilter = document.getElementById('tagUsageFilter');
+            const emptyMessage = document.getElementById('tagFilterEmpty');
+            const tagsContainer = document.getElementById('tagsContainer');
+
+            if (!searchInput || !usageFilter || !tagsContainer) return;
+
+            const query = searchInput.value.trim().toLowerCase();
+            const usage = usageFilter.value;
+            const tags = tagsContainer.querySelectorAll('.tag-item');
+
+            let visibleCount = 0;
+
+            tags.forEach(tag => {
+                const name = tag.dataset.tagName || '';
+                const articleCount = Number(tag.dataset.articleCount || 0);
+
+                const matchesName = name.includes(query);
+                const matchesUsage =
+                    usage === 'all' ||
+                    (usage === 'used' && articleCount > 0) ||
+                    (usage === 'unused' && articleCount === 0);
+
+                const visible = matchesName && matchesUsage;
+
+                tag.classList.toggle('hidden', !visible);
+
+                if (visible) visibleCount++;
+            });
+
+            if (emptyMessage) {
+                emptyMessage.classList.toggle('hidden', visibleCount > 0);
+            }
+        }
 
         /**
          * Open tag modal for creating a new tag

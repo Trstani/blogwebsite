@@ -74,7 +74,7 @@ Route::get('/', function () {
             $q->where('status', 'published');
         }])
         ->orderByDesc('articles_count')
-        ->take(6)
+        ->take(10)
         ->get();
 
     return view(
@@ -401,6 +401,30 @@ Route::put('/profile/{slug}/bio', function (
     ->name('profile.bio')
     ->middleware('auth');
 
+
+// Update display name
+Route::put('/profile/{slug}/name', function (
+    Request $request,
+    $slug
+) {
+    $user = User::where('slug', $slug)->firstOrFail();
+
+    if (auth()->id() !== $user->id) {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+    ]);
+
+    $user->update([
+        'name' => trim($validated['name']),
+    ]);
+
+    return back()->with('success', 'Display name updated!');
+})
+    ->name('profile.name')
+    ->middleware('auth');
 
 /*
 |--------------------------------------------------------------------------

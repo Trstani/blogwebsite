@@ -9,7 +9,12 @@ class Tag extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'created_by'];
+    
+    public function creator()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
 
     // Tag punya banyak articles
     public function articles()
