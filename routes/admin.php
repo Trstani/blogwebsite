@@ -119,6 +119,53 @@ Route::post('/admin/articles/{article}/reject', function (Request $request, Arti
     return back()->with('success', 'Article rejected with feedback.');
 })->name('admin.reject')->middleware(['auth', 'admin']);
 
+Route::post('/admin/articles/{article}/unpublish', function (Article $article) {
+    // Only unpublish if article is currently published
+    if ($article->status !== 'published') {
+        return back()->with('error', 'Only published articles can be unpublished.');
+    }
+
+    $article->status = 'pending';
+    $article->save();
+
+    // Notify author if article was just unpublished
+    if ($article->wasChanged('status')) {
+        $article->author->notify(new \App\Notifications\ArticleUnpublishedNotification($article));
+    }
+
+    return back()->with('success', 'Article unpublished and returned to review queue.');
+})->name('admin.unpublish')->middleware(['auth', 'admin']);
+
+Route::post('/admin/articles/{article}/delete', function (Article $article) {
+    // Only delete if article is currently pending
+    if ($article->status !== 'pending') {
+        return back()->with('error', 'Only pending articles can be deleted by admin.');
+    }
+
+    // Store article info before deletion for notification
+    $articleTitle = $article->title;
+    $author = $article->author;
+    $admin = auth()->user();
+
+    // Load sections before deletion to ensure observer can access them
+    $article->load('sections');
+
+    // Delete sections using Eloquent model deletion to trigger observers
+    foreach ($article->sections as $section) {
+        $section->delete();
+    }
+
+    // Delete article (triggers ArticleObserver::deleted())
+    $article->delete();
+
+    // Notify author that their pending article was deleted by admin
+    if ($author) {
+        $author->notify(new \App\Notifications\ArticleDeletedByAdminNotification($articleTitle, $admin));
+    }
+
+    return back()->with('success', 'Article deleted.');
+})->name('admin.delete')->middleware(['auth', 'admin']);
+
 Route::post('/admin/users/{user}/promote', function (User $user) {
     if (auth()->user()->role !== 'super_admin') {
         abort(403);

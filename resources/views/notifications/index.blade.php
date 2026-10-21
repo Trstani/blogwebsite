@@ -44,6 +44,11 @@
                                             bg-green-600
                                         @elseif(strpos($notification->type, 'ArticleRejected') !== false)
                                             bg-red-600
+                                        @elseif(strpos($notification->type, 'ArticleUnpublished') !== false)
+                                            bg-orange-600   
+                                        @elseif(strpos($notification->type, 'ArticleDeletedByAdmin') !== false ||
+                                                strpos($notification->type, 'ArticleDeletedByWriter') !== false)
+                                            bg-red-700     
                                         @elseif(strpos($notification->type, 'NewComment') !== false)
                                             bg-blue-600
                                         @elseif(strpos($notification->type, 'CommentReply') !== false)
@@ -58,6 +63,11 @@
                                             Approved
                                         @elseif(strpos($notification->type, 'ArticleRejected') !== false)
                                             Rejected
+                                        @elseif(strpos($notification->type, 'ArticleUnpublished') !== false)
+                                            Unpublished
+                                        @elseif(strpos($notification->type, 'ArticleDeletedByAdmin') !== false ||
+                                                strpos($notification->type, 'ArticleDeletedByWriter') !== false)
+                                            Deleted
                                         @elseif(strpos($notification->type, 'NewComment') !== false)
                                             New Comment
                                         @elseif(strpos($notification->type, 'CommentReply') !== false)
@@ -95,6 +105,23 @@
                                                 'Your article "%s" has been rejected',
                                                 $data['article_title'] ?? 'Untitled'
                                             );
+                                        } elseif (strpos($notification->type, 'ArticleUnpublished') !== false) {
+                                            $message = sprintf(
+                                                'Your article "%s" has been unpublished and returned to the review queue',
+                                                $data['article_title'] ?? 'Untitled'
+                                            );
+                                        } elseif (strpos($notification->type, 'ArticleDeletedByAdmin') !== false) {
+                                            $message = sprintf(
+                                                'Your article "%s" has been deleted by %s',
+                                                $data['article_title'] ?? 'Untitled',
+                                                $data['admin_name'] ?? 'an admin'
+                                            );
+                                        } elseif (strpos($notification->type, 'ArticleDeletedByWriter') !== false) {
+                                            $message = sprintf(
+                                                'Article "%s" by %s has been deleted',
+                                                $data['article_title'] ?? 'Untitled',
+                                                $data['writer_name'] ?? 'a writer'
+                                            );    
                                         } elseif (strpos($notification->type, 'NewComment') !== false) {
                                             $message = sprintf(
                                                 '%s commented on "%s"',

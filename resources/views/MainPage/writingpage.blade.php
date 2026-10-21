@@ -60,6 +60,16 @@
             border: 1px solid #e5e7eb !important;
             border-radius: 8px 8px 0 0 !important;
             background: #f9fafb;
+            position: relative;
+            z-index: 20;
+        }
+
+        .ql-toolbar .ql-picker {
+            position: relative;
+        }
+
+        .ql-toolbar .ql-picker-options {
+            z-index: 50 !important;
         }
 
         .ql-container.ql-snow {
@@ -271,29 +281,56 @@
         ============================================ */
         @media (max-width: 640px) {
             .ql-toolbar.ql-snow {
-                padding: 6px;
-                overflow-x: auto;
-                white-space: nowrap;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 2px;
+                padding: 6px !important;
+                overflow: visible !important;
+                white-space: normal !important;
+                position: relative;
+                z-index: 20;
+                border-radius: 8px 8px 0 0 !important;
             }
 
             .ql-toolbar .ql-formats {
-                margin-right: 6px;
+                display: inline-flex;
+                align-items: center;
+                margin-right: 4px !important;
+                margin-bottom: 2px;
+            }
+
+            .ql-toolbar button,
+            .ql-toolbar .ql-picker-label {
+                padding: 3px !important;
+            }
+
+            .ql-toolbar .ql-picker-options {
+                z-index: 50 !important;
+                background: #fff !important;
+            }
+
+            .ql-container.ql-snow {
+                font-size: 15px !important;
+                position: relative;
+                z-index: 1;
             }
 
             .ql-editor {
-                padding: 0.75rem 0 !important;
-                font-size: 16px !important;
+                padding: 12px 2px !important;
+                font-size: 15px !important;
+                line-height: 1.6 !important;
+                overflow-wrap: anywhere;
             }
 
             .ql-editor h2 {
-                font-size: 1.5rem !important;
+                font-size: 1.3rem !important;
             }
 
             .ql-editor h3 {
-                font-size: 1.25rem !important;
+                font-size: 1.15rem !important;
             }
 
-            /* Save status badge — mobile compact */
             #saveStatus {
                 padding-left: 0.25rem !important;
                 padding-right: 0.25rem !important;

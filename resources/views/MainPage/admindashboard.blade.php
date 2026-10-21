@@ -195,6 +195,11 @@
                                             class="flex-1 sm:flex-initial px-4 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
                                         Reject
                                     </button>
+                                    <button type="button"
+                                            onclick="openDeleteModal({{ $article->id }}, '{{ addslashes($article->title) }}')"
+                                            class="flex-1 sm:flex-initial px-4 py-2 text-xs font-medium text-white bg-black rounded-md hover:bg-red-500 transition-colors">
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
                         @endforeach
@@ -284,14 +289,21 @@
                                     </div>
                                 </div>
 
-                                <form method="POST" action="{{ route('admin.feature', $article) }}" class="flex-shrink-0">
-                                    @csrf
-                                    <button type="submit"
-                                            class="w-full px-3 py-1.5 text-xs font-medium rounded-md transition-colors sm:w-auto
-                                                {{ $article->is_featured ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                                        {{ $article->is_featured ? '★ Featured' : '☆ Feature' }}
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <form method="POST" action="{{ route('admin.feature', $article) }}" class="flex-shrink-0">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full px-3 py-1.5 text-xs font-medium rounded-md transition-colors sm:w-auto
+                                                    {{ $article->is_featured ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                                            {{ $article->is_featured ? '★ Featured' : '☆ Feature' }}
+                                        </button>
+                                    </form>
+                                    <button type="button"
+                                            onclick="openUnpublishModal({{ $article->id }}, '{{ addslashes($article->title) }}')"
+                                            class="px-3 py-1.5 text-xs font-medium text-white bg-orange-400 rounded-md hover:bg-orange-600 transition-colors">
+                                        Unpublish
                                     </button>
-                                </form>
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -803,6 +815,54 @@
         </div>
     </div>
 
+    {{-- Unpublish Modal --}}
+    <div id="unpublishModal" class="hidden fixed inset-0 z-50 items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="closeUnpublishModal()"></div>
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-5 sm:p-8">
+            <h2 class="text-xl font-bold text-black mb-1">Unpublish Article</h2>
+            <p class="text-sm text-gray-500 mb-4">Article: <strong id="unpublishArticleTitle"></strong></p>
+            <p class="text-sm text-gray-600 mb-6">This article will be moved back to the review queue. The author will be notified.</p>
+
+            <form method="POST" id="unpublishForm">
+                @csrf
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" onclick="closeUnpublishModal()"
+                            class="w-full px-5 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-lg hover:border-black hover:text-black transition-colors sm:w-auto">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="w-full px-5 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors sm:w-auto">
+                        Yes, Unpublish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Delete Modal --}}
+    <div id="deleteModal" class="hidden fixed inset-0 z-50 items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="closeDeleteModal()"></div>
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-5 sm:p-8">
+            <h2 class="text-xl font-bold text-black mb-1">Delete Article</h2>
+            <p class="text-sm text-gray-500 mb-4">Article: <strong id="deleteArticleTitle"></strong></p>
+            <p class="text-sm text-red-600 mb-6 font-medium">This action is permanent and cannot be undone. All sections, images, and associated data will be deleted.</p>
+
+            <form method="POST" id="deleteForm">
+                @csrf
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" onclick="closeDeleteModal()"
+                            class="w-full px-5 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-lg hover:border-black hover:text-black transition-colors sm:w-auto">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="w-full px-5 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors sm:w-auto">
+                        Yes, Delete Permanently
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function switchTab(tab) {
             // Hide all tabs
@@ -865,6 +925,34 @@
 
         function closeRejectModal() {
             const modal = document.getElementById('rejectModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openUnpublishModal(id, title) {
+            document.getElementById('unpublishArticleTitle').textContent = title;
+            document.getElementById('unpublishForm').action = '/admin/articles/' + id + '/unpublish';
+            const modal = document.getElementById('unpublishModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeUnpublishModal() {
+            const modal = document.getElementById('unpublishModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openDeleteModal(id, title) {
+            document.getElementById('deleteArticleTitle').textContent = title;
+            document.getElementById('deleteForm').action = '/admin/articles/' + id + '/delete';
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }

@@ -46,6 +46,11 @@ Route::delete('/articles/{article}', function (Article $article) {
         abort(403);
     }
 
+    // Store article info before deletion
+    $articleTitle = $article->title;
+    $wasPublished = $article->status === 'published';
+    $writer = auth()->user();
+
     // Load sections relationship into memory before deletion
     // This ensures ArticleObserver can access them after sections are deleted
     $article->load('sections');
@@ -58,6 +63,17 @@ Route::delete('/articles/{article}', function (Article $article) {
     }
 
     $article->delete();
+
+    // If published article was deleted by writer, notify all admins
+    if ($wasPublished) {
+        $admins = \App\Models\User::where('role', 'admin')
+            ->orWhere('role', 'super_admin')
+            ->get();
+        
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\ArticleDeletedByWriterNotification($articleTitle, $writer));
+        }
+    }
 
     return back()->with('success', 'Article deleted.');
 })->name('articles.delete')->middleware('auth');
