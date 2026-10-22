@@ -74,18 +74,6 @@ Route::post('/logout', function (Request $request) {
     return redirect('/');
 })->name('logout');
 
-// Diagnostic endpoint for OTP verification troubleshooting (debug only, remove in production)
-Route::get('/diagnostic/otp', [
-    \App\Http\Controllers\Auth\DiagnosticOtpController::class,
-    'diagnose',
-]);
-
-// Detailed diagnostic endpoint
-Route::get('/diagnostic/otp-detailed', [
-    \App\Http\Controllers\Auth\DetailedDiagnosticController::class,
-    'diagnose',
-]);
-
 // Forgot Password Page
 Route::get('/forgot-password', function () {
     return view('MainPage.forgot-password');

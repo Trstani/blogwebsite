@@ -154,6 +154,7 @@ class ArticleController extends Controller
             'sections.*.public_id' => 'nullable|string',
             'tag_ids' => 'nullable|array|max:5',
             'tag_ids.*' => 'integer|exists:tags,id',
+            'cover_image' => 'nullable|string',
         ]);
 
         \Log::info('Saving sections', [
@@ -274,6 +275,31 @@ class ArticleController extends Controller
             */
             $tagIds = $request->tag_ids ?? [];
             $article->tags()->sync($tagIds);
+
+            /*
+            * Handle cover image update if provided and different from current.
+            */
+            if ($request->cover_image && $request->cover_image !== $article->cover_image) {
+                $oldCover = $article->cover_image;
+                $article->cover_image = $request->cover_image;
+                $article->save();
+
+                // Delete old local cover file if it exists and is a local path
+                if ($oldCover) {
+                    $fileService = app(LocalFileStorageService::class);
+                    if ($fileService->isLocalPath($oldCover)) {
+                        // Attempt deletion, log result but don't fail the request
+                        try {
+                            $fileService->delete($oldCover);
+                        } catch (\Exception $e) {
+                            \Log::warning('Failed to delete old cover file', [
+                                'path' => $oldCover,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                }
+            }
         });
 
         return response()->json([

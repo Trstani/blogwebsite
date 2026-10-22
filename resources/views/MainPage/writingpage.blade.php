@@ -36,20 +36,57 @@
             border-color: #e5e7eb;
         }
 
-        .section-block:hover .section-menu {
-            opacity: 1;
-        }
-
+        /* Floating delete control at the top-right corner of each section.
+           It is taken out of the flow so it never pushes the section content
+           down and never fights with the Quill toolbar / upload placeholder. */
         .section-menu {
-            opacity: 0;
-            transition: opacity 0.2s ease;
+            position: absolute;
+            top: -0.75rem;
+            right: -0.75rem;
+            z-index: 30;
+            display: flex;
+            justify-content: flex-end;
         }
 
-        /* On touch devices, always show the section menu */
-        @media (hover: none) {
-            .section-menu {
-                opacity: 1;
-            }
+        .section-delete-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            padding: 0;
+            border: 1px solid #fecaca;
+            border-radius: 9999px;
+            background: #fef2f2;
+            color: #b91c1c;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .section-delete-button:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .section-delete-button:focus-visible {
+            outline: 2px solid #dc2626;
+            outline-offset: 2px;
+        }
+
+        /* Compact icon-only button — the label stays in the DOM for a11y
+           (title + aria-label) but is hidden visually. */
+        .section-delete-button span {
+            display: none;
+        }
+
+        .section-delete-button svg {
+            width: 0.875rem;
+            height: 0.875rem;
         }
 
         /* ============================================
@@ -280,6 +317,11 @@
            MOBILE — TABLET (max-width: 640px)
         ============================================ */
         @media (max-width: 640px) {
+            .section-menu {
+                top: -0.5rem;
+                right: -0.5rem;
+            }
+
             .ql-toolbar.ql-snow {
                 display: flex;
                 flex-wrap: wrap;
@@ -597,6 +639,40 @@
             </div>
 
         </div>
+        
+        {{-- =====================================================
+             ARTICLE COVER
+        ====================================================== --}}
+        <div class="mb-6 sm:mb-8">
+            <div id="coverPreviewContainer" class="relative bg-gray-100 rounded-lg overflow-hidden w-full aspect-video mb-4">
+                <img id="coverPreview" src="" alt="Article cover" class="w-full h-full object-cover" />
+                <div id="coverPlaceholder" class="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-400">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0l9.172 9.172M4 16l1.414-1.414a2 2 0 012.828 0l8.172 8.172M4 16h16M12 2h.01" />
+                    </svg>
+                </div>
+            </div>
+            <button type="button" onclick="openCoverModal()" class="px-4 py-2 text-sm border border-gray-200 rounded-md text-gray-600 hover:border-gray-400 hover:text-gray-800 transition-colors">
+                Change Cover
+            </button>
+        </div>
+
+        {{-- Cover Upload Modal --}}
+        <div id="coverModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 class="text-lg font-bold mb-4">Upload Cover Image</h2>
+                <div class="upload-placeholder w-full min-h-40 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all bg-gray-50 hover:border-gray-400 hover:bg-gray-100" onclick="document.getElementById('coverFileInput').click()">
+                    <svg class="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <p class="text-sm text-gray-400">Click to upload cover</p>
+                </div>
+                <input type="file" id="coverFileInput" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleCoverUpload(this)" />
+                <div class="mt-4 flex gap-3">
+                    <button type="button" onclick="closeCoverModal()" class="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-md text-gray-600 hover:border-gray-400">Cancel</button>
+                </div>
+            </div>
+        </div>
 
 
         {{-- =====================================================
@@ -651,28 +727,13 @@
                 data-type="text"
             >
 
-                <div class="absolute right-2 top-2 section-menu z-10">
-
-                    <button
-                        onclick="removeSection(this)"
-                        class="text-gray-300 hover:text-red-500 p-1 bg-white rounded"
-                        title="Remove section"
-                    >
-                        <svg
-                            class="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
+                <div class="section-menu">
+                    <button type="button" onclick="removeSection(this)" class="section-delete-button" title="Delete section" aria-label="Delete section">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
                         </svg>
+                        <span>Delete section</span>
                     </button>
-
                 </div>
 
                 <div
@@ -1025,11 +1086,12 @@
             block.setAttribute('data-client-id', clientId);
 
             const menu = `
-                <div class="absolute right-2 top-2 section-menu z-10">
-                    <button onclick="removeSection(this)" class="text-gray-300 hover:text-red-500 p-1 bg-white rounded" title="Remove section">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <div class="section-menu">
+                    <button type="button" onclick="removeSection(this)" class="section-delete-button" title="Delete section" aria-label="Delete section">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
                         </svg>
+                        <span>Delete section</span>
                     </button>
                 </div>
             `;
@@ -1091,11 +1153,12 @@
             block.setAttribute('data-client-id', clientId);
 
             const menu = `
-                <div class="absolute right-2 top-2 section-menu z-10">
-                    <button onclick="removeSection(this)" class="text-gray-300 hover:text-red-500 p-1 bg-white rounded" title="Remove section">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <div class="section-menu">
+                    <button type="button" onclick="removeSection(this)" class="section-delete-button" title="Delete section" aria-label="Delete section">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
                         </svg>
+                        <span>Delete section</span>
                     </button>
                 </div>
             `;
@@ -1820,10 +1883,24 @@
             const descriptionEl = document.getElementById('article-description');
             const title = titleEl ? titleEl.value.trim() : '';
             const description = descriptionEl ? descriptionEl.value.trim() : '';
+            const coverImage = sessionStorage.getItem('articleCover') || null;
+            
+            const payload = { 
+                title: title, 
+                description: description, 
+                sections: sections, 
+                tag_ids: selectedTagIds
+            };
+            
+            // Include cover_image only if it's new/changed
+            if (coverImage) {
+                payload.cover_image = coverImage;
+            }
+            
             const response = await fetch(`/articles/${currentArticleId}/sections`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' },
-                body: JSON.stringify({ title: title, description: description, sections: sections, tag_ids: selectedTagIds })
+                body: JSON.stringify(payload)
             });
             if (!response.ok) {
                 let message = `HTTP ${response.status}`;
@@ -1871,6 +1948,18 @@
             .then(data => {
                 if (!data.success) throw new Error(data.error || 'Failed to load article');
                 currentArticleId = data.article_id;
+                
+                // Load cover image
+                if (data.cover_image) {
+                    const coverUrl = data.cover_image.startsWith('/storage/') 
+                        ? data.cover_image 
+                        : '/storage/' + data.cover_image;
+                    document.getElementById('coverPreview').src = coverUrl;
+                    document.getElementById('coverPreview').style.display = 'block';
+                    document.getElementById('coverPlaceholder').style.display = 'none';
+                    sessionStorage.setItem('articleCover', data.cover_image);
+                }
+                
                 const titleEl = document.getElementById('article-title');
                 titleEl.value = data.title || '';
                 autoResize(titleEl);
@@ -1897,13 +1986,14 @@
                     const container = document.getElementById('sections');
                     container.innerHTML = `
                         <div class="section-block" data-type="text">
-                            <div class="absolute right-2 top-2 section-menu z-10">
-                                <button onclick="removeSection(this)" class="text-gray-300 hover:text-red-500 p-1 bg-white rounded">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
+                            <div class="section-menu">
+                    <button type="button" onclick="removeSection(this)" class="section-delete-button" title="Delete section" aria-label="Delete section">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
+                        </svg>
+                        <span>Delete section</span>
+                    </button>
+                </div>
                             <div class="quill-editor" data-placeholder="Start writing..."></div>
                             <div class="mt-2 text-right">
                                 <span class="text-xs text-gray-400 char-count">0 / ${LIMITS.maxCharsPerSection.toLocaleString()} characters</span>
@@ -2136,6 +2226,83 @@
 
         function escapeHtmlAttribute(value) {
             return escapeHtml(value).replace(/"/g, '&quot;');
+        }
+
+        function showUploadError(container, message, type) {
+            const isGif = type === 'gif';
+            const label = isGif ? 'GIF' : 'image';
+            container.innerHTML = `
+                <div class="w-full min-h-[200px] border-2 border-dashed border-red-200 rounded-lg flex flex-col items-center justify-center bg-red-50">
+                    <svg class="w-10 h-10 text-red-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p class="text-sm text-red-500">Upload failed</p>
+                    <p class="text-xs text-red-400 mt-2 text-center px-4">${escapeHtml(message)}</p>
+                    <button onclick="location.reload()" class="mt-2 text-xs text-red-500 underline">Try again</button>
+                </div>
+            `;
+        }
+
+        // ========== COVER UPLOAD FUNCTIONS ==========
+        function openCoverModal() {
+            document.getElementById('coverModal').classList.remove('hidden');
+            document.getElementById('coverFileInput').value = '';
+        }
+
+        function closeCoverModal() {
+            document.getElementById('coverModal').classList.add('hidden');
+        }
+
+        function handleCoverUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            const modal = document.getElementById('coverModal');
+            const uploadArea = modal.querySelector('.upload-placeholder');
+            
+            const originalHTML = uploadArea.innerHTML;
+            uploadArea.innerHTML = `
+                <div class="flex flex-col items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300 animate-spin mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-400">Uploading...</p>
+                </div>
+            `;
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            
+            fetch('/local-upload/cover', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' },
+                body: formData
+            })
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update preview and store in sessionStorage
+                    const coverUrl = data.url;
+                    const coverPath = data.path;
+                    
+                    document.getElementById('coverPreview').src = coverUrl;
+                    document.getElementById('coverPreview').style.display = 'block';
+                    document.getElementById('coverPlaceholder').style.display = 'none';
+                    sessionStorage.setItem('articleCover', coverPath);
+                    
+                    markDirty();
+                    closeCoverModal();
+                } else {
+                    uploadArea.innerHTML = originalHTML;
+                    showAlert('Upload failed', data.message || 'Failed to upload cover', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Cover upload error:', err);
+                uploadArea.innerHTML = originalHTML;
+                showAlert('Upload error', 'Failed to upload cover: ' + err.message, 'error');
+            });
         }
 
         function showUploadError(container, message, type) {

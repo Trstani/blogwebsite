@@ -46,6 +46,7 @@
             @forelse($articles as $article)
                 <x-maincomponents.card :article="(object)[
                     'id'          => $article->id,
+                    'slug'        => $article->slug,
                     'title'       => $article->title,
                     'description' => $article->description,
                     'category'    => $article->category->name ?? '',
