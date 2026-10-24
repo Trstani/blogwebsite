@@ -23,7 +23,7 @@
         /* Paragraph */
         .rich-article-content p {
             margin-top: 0;
-            margin-bottom: 1.25rem;
+            margin-bottom: 0;
         }
 
         /* Headings */
@@ -32,8 +32,8 @@
             line-height: 1.3;
             font-weight: 700;
             color: #18181b;
-            margin-top: 2rem;
-            margin-bottom: 0.875rem;
+            margin-top: 0;
+            margin-bottom: 0;
             letter-spacing: -0.01em;
         }
 
@@ -42,8 +42,8 @@
             line-height: 1.4;
             font-weight: 700;
             color: #18181b;
-            margin-top: 1.5rem;
-            margin-bottom: 0.625rem;
+            margin-top: 0;
+            margin-bottom: 0;
             letter-spacing: -0.01em;
         }
 

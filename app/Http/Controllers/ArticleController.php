@@ -143,19 +143,65 @@ class ArticleController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'sections' => 'required|array|min:1|max:20',
             'sections.*.id' => 'nullable|integer',
             'sections.*.client_id' => 'nullable|string|max:100',
             'sections.*.type' => 'required|in:text,image,video,gif',
-            'sections.*.content' => 'required|string|max:10000',
+            'sections.*.content' => 'required|string|max:50000',
             'sections.*.public_id' => 'nullable|string',
             'tag_ids' => 'nullable|array|max:5',
             'tag_ids.*' => 'integer|exists:tags,id',
             'cover_image' => 'nullable|string',
         ]);
+        
+        $validator->after(function ($validator) use ($request) {
+            foreach (($request->input('sections', [])) as $index => $section) {
+                if (
+                    !is_array($section) ||
+                    !isset($section['type'], $section['content']) ||
+                    !is_string($section['content'])
+                ) {
+                    continue;
+                }
+
+                $content = $section['content'];
+
+                if ($section['type'] === 'text') {
+                    // Remove HTML tags and decode HTML entities before counting.
+                    $plainText = html_entity_decode(
+                        strip_tags($content),
+                        ENT_QUOTES | ENT_HTML5,
+                        'UTF-8'
+                    );
+
+                    // Count Unicode characters, including emoji code points.
+                    $charCount = mb_strlen($plainText, 'UTF-8');
+
+                    if ($charCount > 10000) {
+                        $validator->errors()->add(
+                            "sections.{$index}.content",
+                            'This section exceeds the 10,000-character limit. Please continue writing in a new section.'
+                        );
+                    }
+                } else {
+                    // Preserve the existing payload limit for image, video, and GIF.
+                    if (strlen($content) > 10000) {
+                        $validator->errors()->add(
+                            "sections.{$index}.content",
+                            'The content field must not be greater than 10000 characters.'
+                        );
+                    }
+                }
+            }
+        });
+
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
         \Log::info('Saving sections', [
             'article_id' => $article->id,

@@ -1243,7 +1243,7 @@
 
         function updateQuillCounter(quill, block) {
             const text = quill.getText().trim();
-            const charCount = text.length;
+            const charCount = Array.from(text).length;
             const countEl = block.querySelector('.char-count');
             if (!countEl) return;
             countEl.textContent = `${charCount.toLocaleString()} / ${LIMITS.maxCharsPerSection.toLocaleString()} characters`;
@@ -1904,12 +1904,22 @@
             });
             if (!response.ok) {
                 let message = `HTTP ${response.status}`;
+
                 try {
                     const errorData = await response.json();
-                    message = errorData.message || errorData.error || message;
+
+                    const sectionError = Object.entries(errorData.errors || {})
+                        .find(([key]) => /^sections\.\d+\.content$/.test(key));
+
+                    message = sectionError?.[1]?.[0]
+                        || errorData.message
+                        || errorData.error
+                        || message;
                 } catch {}
+
                 throw new Error(message);
             }
+
             return await response.json();
         }
 
@@ -1934,7 +1944,9 @@
         function getHtmlTextLength(html) {
             const temp = document.createElement('div');
             temp.innerHTML = html || '';
-            return (temp.textContent || temp.innerText || '').trim().length;
+            const text = (temp.textContent || temp.innerText || '').trim();
+            return Array.from(text).length;
+
         }
 
         function loadArticle(id) {
