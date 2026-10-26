@@ -32,14 +32,13 @@ class AppServiceProvider extends ServiceProvider
         */
         RateLimiter::for('login', function (Request $request) {
             $email = Str::lower(trim((string) $request->input('email')));
-            $ip = $request->ip();
 
             return [
                 Limit::perMinute(5)
-                    ->by('login:' . $email . '|' . $ip),
+                    ->by('login:' . $email),
 
-                Limit::perMinute(30)
-                    ->by('login-ip:' . $ip),
+                Limit::perHour(20)
+                    ->by('login-hour:' . $email),
             ];
         });
 
@@ -49,93 +48,118 @@ class AppServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
         RateLimiter::for('register', function (Request $request) {
-            return Limit::perMinute(5)
-                ->by('register-ip:' . $request->ip());
+            $email = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(5)
+                    ->by('register-email:' . $email),
+
+                Limit::perHour(10)
+                    ->by('register-hour:' . $email),
+            ];
         });
 
         /*
         |--------------------------------------------------------------------------
-        | OTP Verification Rate Limiters
+        | Registration OTP Verification Rate Limiter
         |--------------------------------------------------------------------------
         */
         RateLimiter::for('verify-otp', function (Request $request) {
             $email = Str::lower(trim((string) $request->input('email')));
-            $ip = $request->ip();
 
             return [
                 Limit::perMinute(5)
-                    ->by('verify-otp:' . $email . '|' . $ip),
+                    ->by('verify-otp:' . $email),
 
-                Limit::perMinute(20)
-                    ->by('verify-otp-ip:' . $ip),
-            ];
-        });
-
-        RateLimiter::for('verify-password-reset', function (Request $request) {
-            $email = Str::lower(trim((string) $request->input('email')));
-            $ip = $request->ip();
-
-            return [
-                Limit::perMinute(5)
-                    ->by('verify-password-reset:' . $email . '|' . $ip),
-
-                Limit::perMinute(20)
-                    ->by('verify-password-reset-ip:' . $ip),
+                Limit::perHour(20)
+                    ->by('verify-otp-hour:' . $email),
             ];
         });
 
         /*
         |--------------------------------------------------------------------------
-        | OTP Sending Rate Limiters
+        | Password Reset OTP Verification Rate Limiter
+        |--------------------------------------------------------------------------
+        */
+        RateLimiter::for('verify-password-reset', function (Request $request) {
+            $email = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(5)
+                    ->by('verify-password-reset:' . $email),
+
+                Limit::perHour(20)
+                    ->by('verify-password-reset-hour:' . $email),
+            ];
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Registration OTP Resend Rate Limiter
         |--------------------------------------------------------------------------
         */
         RateLimiter::for('resend-otp', function (Request $request) {
             $email = Str::lower(trim((string) $request->input('email')));
-            $ip = $request->ip();
 
             return [
                 Limit::perMinute(1)
-                    ->by('resend-otp:' . $email . '|' . $ip),
+                    ->by('resend-otp:' . $email),
 
                 Limit::perHour(5)
-                    ->by('resend-otp-ip:' . $ip),
-            ];
-        });
-
-        RateLimiter::for('forgot-password', function (Request $request) {
-            $email = Str::lower(trim((string) $request->input('email')));
-            $ip = $request->ip();
-
-            return [
-                Limit::perMinute(2)
-                    ->by('forgot-password:' . $email . '|' . $ip),
-
-                Limit::perHour(5)
-                    ->by('forgot-password-ip:' . $ip),
-            ];
-        });
-
-        RateLimiter::for('resend-password-reset', function (Request $request) {
-            $email = Str::lower(trim((string) $request->input('email')));
-            $ip = $request->ip();
-
-            return [
-                Limit::perMinute(1)
-                    ->by('resend-password-reset:' . $email . '|' . $ip),
-
-                Limit::perHour(5)
-                    ->by('resend-password-reset-ip:' . $ip),
+                    ->by('resend-otp-hour:' . $email),
             ];
         });
 
         /*
         |--------------------------------------------------------------------------
-        | Password Reset Rate Limiter
+        | Forgot Password Rate Limiter
+        |--------------------------------------------------------------------------
+        */
+        RateLimiter::for('forgot-password', function (Request $request) {
+            $email = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(2)
+                    ->by('forgot-password:' . $email),
+
+                Limit::perHour(5)
+                    ->by('forgot-password-hour:' . $email),
+            ];
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Password Reset OTP Resend Rate Limiter
+        |--------------------------------------------------------------------------
+        */
+        RateLimiter::for('resend-password-reset', function (Request $request) {
+            $email = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(1)
+                    ->by('resend-password-reset:' . $email),
+
+                Limit::perHour(5)
+                    ->by('resend-password-reset-hour:' . $email),
+            ];
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reset Password Rate Limiter
         |--------------------------------------------------------------------------
         */
         RateLimiter::for('reset-password', function (Request $request) {
-            return Limit::perMinute(5)
-                ->by('reset-password-ip:' . $request->ip());
+            $userId = $request->session()->get('password_reset_user_id');
+
+            $key = $userId
+                ? 'reset-password:user:' . $userId
+                : 'reset-password:session:' . $request->session()->getId();
+
+            return [
+                Limit::perMinute(5)->by($key),
+                Limit::perHour(20)->by($key . ':hour'),
+            ];
         });
 
         /*
