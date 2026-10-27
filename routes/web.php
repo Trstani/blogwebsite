@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use App\Models\AboutPage;
 
 /*
 |--------------------------------------------------------------------------
@@ -510,25 +511,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/articles/{article}/like-bookmark-status', [LikeBookmarkController::class, 'getStatus'])
         ->name('articles.status');
 });
-/*
+
 Route::get('/about', function () {
-    $featured = Article::where('status', 'published')
-        ->where('is_featured', true)
-        ->with('category', 'author')
-        ->latest('updated_at')
-        ->first();
+    $aboutPage = AboutPage::first();
 
-    $articles = Article::where('status', 'published')
-        ->where('is_featured', true)
-        ->when($featured, fn($q) => $q->where('id', '!=', $featured->id))
-        ->with('category', 'author')
-        ->latest()
-        ->take(4)
-        ->get();
-
-    return view('MainPage.about', compact('featured', 'articles'));
+    return view('MainPage.about', compact('aboutPage'));
 })->name('about');
-*/
+
 Route::get('/privacy-policy', function () {
     $legalPage = \App\Models\LegalPage::where('type', 'privacy_policy')
         ->firstOrFail();
@@ -543,14 +532,14 @@ Route::get('/legal-notice', function () {
     return view('MainPage.legalpage', compact('legalPage'));
 })->name('legal-notice');
 
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
-    Route::get(
-        '/legal-pages/{type}/edit',
-        [LegalPageController::class, 'edit']
-    )->name('legal-pages.edit');
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get(
+            '/legal-pages/{type}/edit',
+            [LegalPageController::class, 'edit']
+        )->name('legal-pages.edit');
 
-    Route::put(
-        '/legal-pages/{type}',
-        [LegalPageController::class, 'update']
-    )->name('legal-pages.update');
-});
+        Route::put(
+            '/legal-pages/{type}',
+            [LegalPageController::class, 'update']
+        )->name('legal-pages.update');
+    });

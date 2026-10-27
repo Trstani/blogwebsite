@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\AboutPageController;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\Tag;
@@ -239,3 +240,15 @@ Route::resource('admin/tags', TagController::class, [
     ],
     'only' => ['store', 'update', 'destroy'],
 ])->middleware(['auth', 'admin']);
+
+// ====== ABOUT PAGE EDITOR ======
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/about-page/edit', [AboutPageController::class, 'edit'])
+            ->name('about-page.edit');
+
+        Route::put('/about-page', [AboutPageController::class, 'update'])
+            ->name('about-page.update');
+    });

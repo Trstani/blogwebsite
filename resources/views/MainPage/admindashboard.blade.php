@@ -59,11 +59,13 @@
                         Users
                     </a>
                     @endif
-                    <a href="{{ route('admin.dashboard', ['tab' => 'settings']) }}"
-                       class="tab-button snap-start whitespace-nowrap pb-4 text-sm font-medium transition-colors {{ $activeTab === 'settings' ? 'text-gray-900 border-b-2 border-black' : 'text-gray-400 border-b-2 border-transparent hover:text-black' }}"
-                       data-tab="settings">
-                        Settings
-                    </a>
+                    @if(auth()->user()->role === 'super_admin')
+                        <a href="{{ route('admin.dashboard', ['tab' => 'settings']) }}"
+                        class="tab-button snap-start whitespace-nowrap pb-4 text-sm font-medium transition-colors {{ $activeTab === 'settings' ? 'text-gray-900 border-b-2 border-black' : 'text-gray-400 border-b-2 border-transparent hover:text-black' }}"
+                        data-tab="settings">
+                            Advanced
+                        </a>
+                    @endif
 
                 </div>
             </div>
@@ -720,7 +722,7 @@
         {{-- ========== SETTINGS TAB ========== --}}
         <div id="settings" class="tab-content {{ $activeTab !== 'settings' ? 'hidden' : '' }}">
 
-            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'super_admin')
+            @if(auth()->user()->role === 'super_admin')
                 <div class="bg-white rounded-lg border border-gray-100 p-4 sm:p-6">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
                         <div>
@@ -771,6 +773,24 @@
 
                                 <p class="mt-1 text-xs text-gray-400">
                                     Manage legal information and website notices.
+                                </p>
+                            </div>
+
+                            <span class="text-lg text-gray-300 group-hover:text-[#159AA3] transition-colors flex-shrink-0 ml-3">
+                                →
+                            </span>
+                        </a>
+                        <a
+                            href="{{ route('admin.about-page.edit', 'about') }}"
+                            class="group flex items-center justify-between border border-gray-100 rounded-lg p-4 hover:border-cyan-200 hover:bg-cyan-50/30 transition-all"
+                        >
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-[#159AA3] transition-colors">
+                                    About the Website
+                                </p>
+
+                                <p class="mt-1 text-xs text-gray-400">
+                                    Manage the information of the website and tehe company.
                                 </p>
                             </div>
 

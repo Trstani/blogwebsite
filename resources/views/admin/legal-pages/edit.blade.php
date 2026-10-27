@@ -8,8 +8,15 @@
     <title>Edit {{ $legalPage->title }} - Blog Dinamika</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
 
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
         .ql-toolbar.ql-snow {
             border: 1px solid #e5e7eb !important;
             border-radius: 8px 8px 0 0 !important;

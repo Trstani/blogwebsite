@@ -37,7 +37,7 @@ class LegalPagePolicy
      */
     public function update(User $user, LegalPage $legalPage): bool
     {
-        return $user->isAdmin();
+        return $user->role === 'super_admin';
     }
 
     /**
