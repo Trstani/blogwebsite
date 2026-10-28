@@ -41,3 +41,5 @@ Thumbs.db
 .nitpick
 .env.*.local
 *.md
+
+tests/
