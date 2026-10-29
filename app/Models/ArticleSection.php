@@ -9,7 +9,7 @@ class ArticleSection extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['article_id', 'type', 'content', 'order', 'image_public_id'];
+    protected $fillable = ['article_id', 'type', 'content', 'order', 'image_public_id', 'image_position_x','image_position_y',];
 
     // Section punya 1 article
     public function article()

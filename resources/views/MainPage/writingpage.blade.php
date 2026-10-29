@@ -1143,7 +1143,7 @@
             updateSectionCount();
         }
 
-        function addSectionWithContent(type, content, sectionId = null, publicId = null) {
+        function addSectionWithContent(type, content, sectionId = null, publicId = null, positionX = 50, positionY = 50) {
             const container = document.getElementById('sections');
             const block = document.createElement('div');
             block.className = 'section-block';
@@ -1180,21 +1180,41 @@
                     if (source === 'user') markDirty();
                     updateQuillCounter(quill, block);
                 });
-            } else if (type === 'image') {
-                let displayUrl = content;
-                let dataLocalPath = '';
-                let dataPublicId = publicId || '';
-                if (content && content.startsWith('uploads/')) {
-                    displayUrl = '/storage/' + content;
-                    dataLocalPath = content;
-                    dataPublicId = '';
-                }
-                block.innerHTML = menu + `
-                    <div class="article-media-image">
-                        <img src="${escapeHtmlAttribute(displayUrl)}" alt="Gambar Artikel" data-public-id="${escapeHtmlAttribute(dataPublicId)}" ${dataLocalPath ? `data-local-path="${escapeHtmlAttribute(dataLocalPath)}"` : ''} />
-                    </div>
-                `;
-                container.appendChild(block);
+                } else if (type === 'image') {
+                    let displayUrl = content;
+                    let dataLocalPath = '';
+                    let dataPublicId = publicId || '';
+
+                    if (content && content.startsWith('uploads/')) {
+                        displayUrl = '/storage/' + content;
+                        dataLocalPath = content;
+                        dataPublicId = '';
+                    }
+
+                    const x = Math.max(0, Math.min(100, Number(positionX) || 0));
+                    const y = Math.max(0, Math.min(100, Number(positionY) || 0));
+
+                    block.dataset.imagePositionX = x;
+                    block.dataset.imagePositionY = y;
+
+                    block.innerHTML = menu + `
+                        <div class="article-media-image"
+                            style="cursor: grab; touch-action: pan-y;"
+                            title="Drag to reposition image">
+                            <img
+                                src="${escapeHtmlAttribute(displayUrl)}"
+                                alt="Gambar Artikel"
+                                data-public-id="${escapeHtmlAttribute(dataPublicId)}"
+                                style="object-position: ${x}% ${y}%;"
+                                draggable="false"
+                                ${dataLocalPath ? `data-local-path="${escapeHtmlAttribute(dataLocalPath)}"` : ''}
+                            />
+                        </div>
+                    `;
+
+                    container.appendChild(block);
+
+                    initImagePositionDrag(block);
             } else if (type === 'video') {
                 block.innerHTML = menu + `
                     <div class="space-y-3">
@@ -1222,6 +1242,86 @@
                 container.appendChild(block);
             }
             updateSectionCount();
+        }        
+        function initImagePositionDrag(block) {
+            const frame = block.querySelector('.article-media-image');
+            const img = frame?.querySelector('img');
+
+            if (!frame || !img || frame.dataset.dragInitialized === 'true') {
+                return;
+            }
+
+            frame.dataset.dragInitialized = 'true';
+
+            let dragging = false;
+            let moved = false;
+            let startX = 0;
+            let startY = 0;
+            let initialX = 50;
+            let initialY = 50;
+
+            const clamp = value => Math.max(0, Math.min(100, value));
+
+            frame.addEventListener('pointerdown', function (event) {
+                if (event.button !== 0) return;
+
+                dragging = true;
+                moved = false;
+
+                startX = event.clientX;
+                startY = event.clientY;
+
+                initialX = Number(block.dataset.imagePositionX ?? 50);
+                initialY = Number(block.dataset.imagePositionY ?? 50);
+
+                frame.style.cursor = 'grabbing';
+
+                try {
+                    frame.setPointerCapture(event.pointerId);
+                } catch (_) {
+                    // Pointer capture may be unavailable in some browsers.
+                }
+            });
+
+            frame.addEventListener('pointermove', function (event) {
+                if (!dragging) return;
+
+                const rect = frame.getBoundingClientRect();
+
+                if (!rect.width || !rect.height) return;
+
+                const deltaX = event.clientX - startX;
+                const deltaY = event.clientY - startY;
+
+                if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+                    moved = true;
+                }
+
+                if (!moved) return;
+
+                const x = clamp(initialX - (deltaX / rect.width) * 100);
+                const y = clamp(initialY - (deltaY / rect.height) * 100);
+
+                block.dataset.imagePositionX = x;
+                block.dataset.imagePositionY = y;
+
+                img.style.objectPosition = `${x}% ${y}%`;
+            });
+
+            function finishDrag() {
+                if (!dragging) return;
+
+                dragging = false;
+                frame.style.cursor = 'grab';
+
+                if (moved) {
+                    markDirty();
+                }
+            }
+
+            frame.addEventListener('pointerup', finishDrag);
+            frame.addEventListener('pointercancel', finishDrag);
+            frame.addEventListener('lostpointercapture', finishDrag);
         }
 
         function initQuillEditors() {
@@ -1327,10 +1427,26 @@
                         .catch(err => console.warn('Old image cleanup error:', err));
                     }
                     container.innerHTML = `
-                        <div class="article-media-image">
-                            <img src="${escapeHtmlAttribute(data.url)}" alt="Gambar Artikel" data-public-id="" data-local-path="${escapeHtmlAttribute(newPath)}" />
+                        <div class="article-media-image"
+                            style="cursor: grab; touch-action: pan-y;"
+                            title="Drag to reposition image">
+                            <img
+                                src="${escapeHtmlAttribute(data.url)}"
+                                alt="Gambar Artikel"
+                                data-public-id=""
+                                data-local-path="${escapeHtmlAttribute(newPath)}"
+                                style="object-position: 50% 50%;"
+                                draggable="false"
+                            />
                         </div>
                     `;
+
+                    // Inisialisasi posisi awal gambar.
+                    sectionBlock.dataset.imagePositionX = 50;
+                    sectionBlock.dataset.imagePositionY = 50;
+
+                    // Aktifkan drag segera setelah gambar selesai di-upload.
+                    initImagePositionDrag(sectionBlock);
                 } else {
                     showUploadError(container, data.message || 'Upload error', 'image');
                 }
@@ -1992,7 +2108,7 @@
                     const container = document.getElementById('sections');
                     container.innerHTML = '';
                     data.sections.forEach(function(section) {
-                        addSectionWithContent(section.type, section.content, section.id, section.public_id);
+                        addSectionWithContent(section.type, section.content, section.id, section.public_id,section.image_position_x ?? 50, section.image_position_y ?? 50);
                     });
                 } else {
                     const container = document.getElementById('sections');
@@ -2059,6 +2175,14 @@
                     } else {
                         section.content = img.src;
                     }
+                    section.image_position_x = Math.round(
+                        Number(block.dataset.imagePositionX ?? 50)
+                    );
+
+                    section.image_position_y = Math.round(
+                        Number(block.dataset.imagePositionY ?? 50)
+                    );
+
                     sections.push(section);
                 } else if (type === 'video') {
                     const input = block.querySelector('input[type="text"]');

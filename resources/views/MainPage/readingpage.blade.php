@@ -520,7 +520,7 @@
                     <div class="relative w-full overflow-hidden rounded-lg bg-zinc-100
                                 aspect-[16/9] sm:aspect-[2/1]">
                         <img src="{{ imageUrl($section->content) }}"
-                             class="absolute inset-0 h-full w-full object-cover object-center"
+                             class="absolute inset-0 h-full w-full object-cover" style="object-position: {{ $section->image_position_x ?? 50 }}% {{ $section->image_position_y ?? 50 }}%;"
                              alt="Gambar Artikel" />
                     </div>
                 </figure>

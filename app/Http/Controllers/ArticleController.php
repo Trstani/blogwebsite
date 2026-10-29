@@ -155,6 +155,8 @@ class ArticleController extends Controller
             'tag_ids' => 'nullable|array|max:5',
             'tag_ids.*' => 'integer|exists:tags,id',
             'cover_image' => 'nullable|string',
+            'sections.*.image_position_x' => ['nullable','integer','min:0','max:100',],
+            'sections.*.image_position_y' => ['nullable','integer','min:0','max:100',],
         ]);
         
         $validator->after(function ($validator) use ($request) {
@@ -263,6 +265,8 @@ class ArticleController extends Controller
                         'content' => $content,
                         'image_public_id' => $section['public_id'] ?? null,
                         'order' => $index + 1,
+                        'image_position_x' => $section['image_position_x'] ?? 50,
+                        'image_position_y' => $section['image_position_y'] ?? 50,
                     ]);
 
                     $incomingSectionIds[] = $existingSection->id;
@@ -289,6 +293,8 @@ class ArticleController extends Controller
                     'content' => $content,
                     'image_public_id' => $section['public_id'] ?? null,
                     'order' => $index + 1,
+                    'image_position_x' => $section['image_position_x'] ?? 50,
+                    'image_position_y' => $section['image_position_y'] ?? 50,
                 ]);
 
                 $incomingSectionIds[] = $newSection->id;
@@ -502,6 +508,8 @@ class ArticleController extends Controller
                 'type' => $s->type,
                 'content' => $s->content,
                 'public_id' => $s->image_public_id,
+                'image_position_x' => $s->image_position_x ?? 50,
+                'image_position_y' => $s->image_position_y ?? 50,
             ])->toArray(),
         ]);
     }
