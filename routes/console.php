@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('cleanup:expired-otp')->daily();
+Schedule::command('cleanup:orphan-images --min-age-hours=24')
+    ->dailyAt('02:00')
+    ->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

@@ -221,19 +221,19 @@
             }
         }
 
-        function submitArticle(e) {
+
+        async function submitArticle(e) {
             e.preventDefault();
 
             const form = document.getElementById('articleForm');
             const formData = new FormData(form);
 
             const title = formData.get('title');
-            const category = formData.get('category');
-            const description = formData.get('description');
+            const categoryId = formData.get('category');
+            const description = formData.get('description') || '';
+
             const coverFileInput = document.getElementById('coverInput');
             const coverFile = coverFileInput.files[0];
-
-            const categoryId = formData.get('category');
 
             const selectedCategory = form.querySelector(
                 'select[name="category"] option:checked'
@@ -241,62 +241,70 @@
 
             const categoryName = selectedCategory?.textContent.trim() || '';
 
+            // Clear previous article ID before creating a new article
+            sessionStorage.removeItem('currentArticleId');
+
+            // Store new article metadata
             sessionStorage.setItem('articleTitle', title);
             sessionStorage.setItem('articleCategory', categoryName);
             sessionStorage.setItem('articleCategoryId', categoryId);
             sessionStorage.setItem('articleDescription', description);
 
-            // Upload cover image to local storage
+            // Clear previous temporary cover data
+            sessionStorage.removeItem('articleCover');
+            sessionStorage.removeItem('articleCoverPublicId');
+
+            // Upload cover image if selected
             if (coverFile) {
                 const uploadFormData = new FormData();
                 uploadFormData.append('file', coverFile);
 
-                console.log('Uploading cover to local storage...', {
-                    fileName: coverFile.name,
-                    fileSize: coverFile.size,
-                    fileType: coverFile.type,
-                });
+                try {
+                    console.log('Uploading cover to local storage...', {
+                        fileName: coverFile.name,
+                        fileSize: coverFile.size,
+                        fileType: coverFile.type,
+                    });
 
-                fetch('/local-upload/cover', {
-                    method: 'POST',
-                    body: uploadFormData,
-                    headers: {
-                        'X-CSRF-TOKEN': getCsrfToken(),
-                        'Accept': 'application/json',
-                    },
-                })
-                .then(res => {
-                    console.log('Cover upload response status:', res.status);
-                    if (!res.ok) {
-                        return res.text().then(text => {
-                            try {
-                                const json = JSON.parse(text);
-                                throw new Error(json.message || 'Server error');
-                            } catch {
-                                throw new Error('Server error: ' + res.status + ' - ' + text.substring(0, 100));
-                            }
-                        });
+                    const response = await fetch('/local-upload/cover', {
+                        method: 'POST',
+                        body: uploadFormData,
+                        headers: {
+                            'X-CSRF-TOKEN': getCsrfToken(),
+                            'Accept': 'application/json',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+
+                        throw new Error(
+                            errorData.message || `Server error: ${response.status}`
+                        );
                     }
-                    return res.json();
-                })
-                .then(data => {
+
+                    const data = await response.json();
+
                     console.log('Local upload response:', data);
-                    if (data.success && data.path) {
-                        console.log('Cover uploaded successfully:', data.path);
-                        sessionStorage.setItem('articleCover', data.path);
-                        sessionStorage.setItem('articleCoverPublicId', null);
-                        window.location.href = '/writer/write';
-                    } else {
-                        console.error('Upload failed:', data);
-                        alert('Upload failed: ' + (data.message || 'Unknown error'));
+
+                    if (!data.success || !data.path) {
+                        throw new Error(data.message || 'Cover upload failed.');
                     }
-                })
-                .catch(err => {
+
+                    // Store uploaded cover path
+                    sessionStorage.setItem('articleCover', data.path);
+
+                    window.location.href = '/writer/write';
+
+                } catch (err) {
                     console.error('Cover upload error:', err);
-                    alert('Upload error: ' + err.message);
-                });
+
+                    alert('Cover upload error: ' + err.message);
+                }
+
             } else {
                 console.log('No cover file selected, proceeding without cover');
+
                 window.location.href = '/writer/write';
             }
         }

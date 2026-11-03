@@ -201,7 +201,7 @@
 
 
         {{-- View all --}}
-        <div class="mt-12 text-center">
+        <div class="my-12 text-center">
             <a href="/explore"
                class="group inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-cyan-600">
                 View all articles

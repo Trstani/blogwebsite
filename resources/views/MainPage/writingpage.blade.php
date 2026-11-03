@@ -886,6 +886,7 @@
 
         let currentArticleId = null;
         let isEditing = false;
+        let isCreatingArticle = false;
 
         let pendingSectionDeleteBlock = null;
         let pendingSectionId = null;
@@ -1010,21 +1011,40 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const pathParts = window.location.pathname.split('/');
-            const editId = pathParts.includes('write') && pathParts[pathParts.length - 1] !== 'write'
+
+            const editId = pathParts.includes('write') &&
+                pathParts[pathParts.length - 1] !== 'write'
                 ? pathParts[pathParts.length - 1]
                 : null;
 
+            const storedArticleId = sessionStorage.getItem('currentArticleId');
+
             if (editId && !isNaN(editId)) {
+
+                // Existing article opened from dashboard
                 isEditing = true;
                 loadArticle(editId);
+
+            } else if (storedArticleId && !isNaN(storedArticleId)) {
+
+                // Restore previously created article after refresh
+                isEditing = true;
+                loadArticle(storedArticleId);
+
             } else {
+
+                // Initialize a genuinely new article
                 const title = sessionStorage.getItem('articleTitle') || '';
                 const category = sessionStorage.getItem('articleCategory') || '';
                 const description = sessionStorage.getItem('articleDescription') || '';
                 const categoryId = sessionStorage.getItem('articleCategoryId') || '1';
+                const coverImage = sessionStorage.getItem('articleCover') || null;
 
                 selectedTagIds = [];
-                loadAvailableTags().then(() => { renderSelectedTags(); });
+
+                loadAvailableTags().then(() => {
+                    renderSelectedTags();
+                });
 
                 const titleEl = document.getElementById('article-title');
                 const descriptionEl = document.getElementById('article-description');
@@ -1041,10 +1061,17 @@
                     autoResize(descriptionEl);
                 }
 
-                if (title) { createArticle(title, categoryId, description); }
-            }
+                // Display cover uploaded from Writer Dashboard
+                if (coverImage) {
+                    setCoverPreview(coverImage);
+                } else {
+                    clearCoverPreview();
+                }
 
-            if (!isEditing) {
+                if (title) {
+                    createArticle(title, categoryId, description);
+                }
+
                 initQuillEditors();
                 isInitializing = false;
             }
@@ -1054,6 +1081,7 @@
             startAutoSave();
 
             const dashboardLink = document.querySelector('a[href="/writer/dashboard"]');
+
             if (dashboardLink) {
                 dashboardLink.addEventListener('click', function(e) {
                     if (isDirty) {
@@ -2079,13 +2107,11 @@
                 
                 // Load cover image
                 if (data.cover_image) {
-                    const coverUrl = data.cover_image.startsWith('/storage/') 
-                        ? data.cover_image 
-                        : '/storage/' + data.cover_image;
-                    document.getElementById('coverPreview').src = coverUrl;
-                    document.getElementById('coverPreview').style.display = 'block';
-                    document.getElementById('coverPlaceholder').style.display = 'none';
+                    setCoverPreview(data.cover_image);
                     sessionStorage.setItem('articleCover', data.cover_image);
+                } else {
+                    clearCoverPreview();
+                    sessionStorage.removeItem('articleCover');
                 }
                 
                 const titleEl = document.getElementById('article-title');
@@ -2300,46 +2326,106 @@
                 closeSectionDeleteConfirm();
             }
         }
+        
+        function setCoverPreview(imagePath) {
+            const preview = document.getElementById('coverPreview');
+            const placeholder = document.getElementById('coverPlaceholder');
 
-        function createArticle(title, categoryId, description) {
+            if (!preview || !placeholder || !imagePath) return;
+
+            const coverUrl = imagePath.startsWith('/storage/')
+                ? imagePath
+                : '/storage/' + imagePath.replace(/^\/+/, '');
+
+            preview.src = coverUrl;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+
+        function clearCoverPreview() {
+            const preview = document.getElementById('coverPreview');
+            const placeholder = document.getElementById('coverPlaceholder');
+
+            if (!preview || !placeholder) return;
+
+            preview.removeAttribute('src');
+            preview.style.display = 'none';
+            placeholder.style.display = 'flex';
+        }
+
+        async function createArticle(title, categoryId, description) {
+            // Prevent duplicate creation requests in the same page session
+            if (isCreatingArticle || currentArticleId) {
+                return;
+            }
+
+            isCreatingArticle = true;
+
             const coverImage = sessionStorage.getItem('articleCover') || null;
             const coverPublicId = sessionStorage.getItem('articleCoverPublicId') || null;
-            fetch('/articles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' },
-                body: JSON.stringify({
-                    title: title,
-                    category_id: parseInt(categoryId),
-                    description: description,
-                    cover_image: coverImage,
-                    cover_image_public_id: coverPublicId
-                })
-            })
-            .then(async res => {
-                if (!res.ok) {
-                    let message = `HTTP ${res.status}`;
+
+            // Display uploaded cover immediately
+            if (coverImage) {
+                setCoverPreview(coverImage);
+            }
+
+            try {
+                const response = await fetch('/articles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        category_id: parseInt(categoryId),
+                        description: description,
+                        cover_image: coverImage,
+                        cover_image_public_id: coverPublicId
+                    })
+                });
+
+                if (!response.ok) {
+                    let message = `HTTP ${response.status}`;
+
                     try {
-                        const errorData = await res.json();
+                        const errorData = await response.json();
                         message = errorData.message || errorData.error || message;
                     } catch {}
+
                     throw new Error(message);
                 }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    currentArticleId = data.article_id;
-                    sessionStorage.removeItem('articleCover');
-                    sessionStorage.removeItem('articleCoverPublicId');
-                    console.log('Article created, ID:', currentArticleId);
-                } else {
-                    showAlert('Failed to create article', 'Gagal membuat article: ' + JSON.stringify(data), 'error');
+
+                const data = await response.json();
+
+                if (!data.success || !data.article_id) {
+                    throw new Error(data.message || 'Failed to create article.');
                 }
-            })
-            .catch(err => {
+
+                currentArticleId = data.article_id;
+
+                // Persist article ID so refresh can restore the existing article
+                sessionStorage.setItem('currentArticleId', String(currentArticleId));
+
+                // Remove temporary cover data only after successful creation
+                sessionStorage.removeItem('articleCover');
+                sessionStorage.removeItem('articleCoverPublicId');
+
+                console.log('Article created, ID:', currentArticleId);
+
+            } catch (err) {
                 console.error('Error creating article:', err);
-                showAlert('Error creating article', 'Error creating article: ' + err.message, 'error');
-            });
+
+                showAlert(
+                    'Error creating article',
+                    'Error creating article: ' + err.message,
+                    'error'
+                );
+
+            } finally {
+                isCreatingArticle = false;
+            }
         }
 
         function autoResize(el) {
