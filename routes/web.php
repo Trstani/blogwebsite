@@ -205,8 +205,18 @@ Route::get('/blog/{slug}', function ($slug) {
         ->firstOrFail();
 
     // Public hanya bisa lihat published
+    // Published articles are public.
+    // Non-published articles are accessible only to their author and admins.
     if ($article->status !== 'published') {
-        if (! auth()->check() || ! auth()->user()->isAdmin()) {
+        $user = auth()->user();
+
+        if (
+            ! $user ||
+            (
+                ! $user->isAdmin() &&
+                (int) $article->author_id !== (int) $user->id
+            )
+        ) {
             abort(404);
         }
     }
