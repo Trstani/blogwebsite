@@ -10,41 +10,38 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [
     RegisterController::class,
     'register',
-])->middleware('throttle:register')->name('register');
+])->name('register');
 
 Route::post('/verify-otp', [
     RegisterController::class,
     'verifyOtp',
-])->middleware('throttle:verify-otp')->name('verify.otp');
+])->name('verify.otp');
 
 Route::post('/resend-otp', [
     RegisterController::class,
     'resendOtp',
-])->middleware('throttle:resend-otp')->name('resend.otp');
+])->name('resend.otp');
 
 // Forgot Password Routes
 Route::post('/forgot-password', [
     ForgotPasswordController::class,
     'sendOtp',
-])->middleware('throttle:forgot-password')->name('forgot.password');
+])->name('forgot.password');
 
 Route::post('/verify-password-reset', [
     ForgotPasswordController::class,
     'verifyOtp',
-])->middleware('throttle:verify-password-reset')
-    ->name('verify.password.reset');
+])->name('verify.password.reset');
 
 Route::post('/resend-password-reset', [
     ForgotPasswordController::class,
     'resendOtp',
-])->middleware('throttle:resend-password-reset')
-    ->name('resend.password.reset');
+])->name('resend.password.reset');
 
 Route::post('/reset-password', [
     ForgotPasswordController::class,
     'resetPassword',
-])->middleware('throttle:reset-password')
-    ->name('reset.password');
+])->name('reset.password');
 
 // Login
 Route::post('/login', function (Request $request) {
@@ -62,7 +59,7 @@ Route::post('/login', function (Request $request) {
     return back()->withErrors([
         'email' => 'Email atau password salah.',
     ]);
-})->middleware('throttle:login')->name('login');
+})->name('login');
 
 // Logout
 Route::post('/logout', function (Request $request) {
