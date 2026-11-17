@@ -22,6 +22,8 @@
                 <img
                     src="{{ imageUrl($article->thumbnail) }}"
                     alt="{{ $article->title ?? 'Article' }}"
+                    loading="lazy"
+                    decoding="async"
                     class="h-full w-full object-cover transition-transform duration-500
                            group-hover:scale-105"
                     onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');"

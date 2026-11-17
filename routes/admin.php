@@ -225,6 +225,178 @@ Route::post('/admin/articles/{article}/feature', function (Article $article) {
     return back()->with('success', 'Added to featured.');
 })->name('admin.feature')->middleware(['auth', 'admin']);
 
+// ====== BULK ARTICLE ACTIONS ======
+Route::post('/admin/articles/bulk-approve', function (Request $request) {
+    if (auth()->user()->role !== 'super_admin') {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'article_ids' => 'required|array|min:1',
+        'article_ids.*' => 'integer|exists:articles,id',
+    ]);
+
+    $articleIds = $validated['article_ids'];
+    $approved = 0;
+    $failed = 0;
+
+    foreach ($articleIds as $articleId) {
+        try {
+            $article = Article::find($articleId);
+            
+            // Only approve pending articles
+            if ($article && $article->status === 'pending') {
+                $article->status = 'published';
+                $article->published_at = now();
+                $article->save();
+
+                // Notify author if article was just published
+                if ($article->wasChanged('status')) {
+                    $article->author->notify(new \App\Notifications\ArticleApprovedNotification($article));
+                }
+                
+                $approved++;
+            } else if ($article) {
+                $failed++;
+            }
+        } catch (\Exception $e) {
+            $failed++;
+        }
+    }
+
+    $message = "{$approved} article(s) approved.";
+    if ($failed > 0) {
+        $message .= " {$failed} article(s) could not be approved (not pending).";
+    }
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'approved' => $approved,
+            'failed' => $failed,
+        ]);
+    }
+
+    return back()->with('success', $message);
+})->name('admin.articles.bulk-approve')->middleware(['auth', 'admin']);
+
+Route::post('/admin/articles/bulk-unpublish', function (Request $request) {
+    if (auth()->user()->role !== 'super_admin') {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'article_ids' => 'required|array|min:1',
+        'article_ids.*' => 'integer|exists:articles,id',
+    ]);
+
+    $articleIds = $validated['article_ids'];
+    $unpublished = 0;
+    $failed = 0;
+
+    foreach ($articleIds as $articleId) {
+        try {
+            $article = Article::find($articleId);
+            
+            // Only unpublish published articles
+            if ($article && $article->status === 'published') {
+                $article->status = 'pending';
+                $article->save();
+
+                // Notify author if article was just unpublished
+                if ($article->wasChanged('status')) {
+                    $article->author->notify(new \App\Notifications\ArticleUnpublishedNotification($article));
+                }
+                
+                $unpublished++;
+            } else if ($article) {
+                $failed++;
+            }
+        } catch (\Exception $e) {
+            $failed++;
+        }
+    }
+
+    $message = "{$unpublished} article(s) unpublished.";
+    if ($failed > 0) {
+        $message .= " {$failed} article(s) could not be unpublished (not published).";
+    }
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'unpublished' => $unpublished,
+            'failed' => $failed,
+        ]);
+    }
+
+    return back()->with('success', $message);
+})->name('admin.articles.bulk-unpublish')->middleware(['auth', 'admin']);
+
+Route::post('/admin/articles/bulk-delete', function (Request $request) {
+    if (auth()->user()->role !== 'super_admin') {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'article_ids' => 'required|array|min:1',
+        'article_ids.*' => 'integer|exists:articles,id',
+    ]);
+
+    $articleIds = $validated['article_ids'];
+    $deleted = 0;
+    $failed = 0;
+
+    foreach ($articleIds as $articleId) {
+        try {
+            $article = Article::with('sections')->find($articleId);
+            
+            if ($article) {
+                // Store info before deletion for notification
+                $articleTitle = $article->title;
+                $author = $article->author;
+                $admin = auth()->user();
+
+                // Delete sections using Eloquent model deletion to trigger observers
+                foreach ($article->sections as $section) {
+                    $section->delete();
+                }
+
+                // Delete article (triggers ArticleObserver::deleted())
+                $article->delete();
+
+                // Notify author that their article was deleted by admin
+                if ($author) {
+                    $author->notify(new \App\Notifications\ArticleDeletedByAdminNotification($articleTitle, $admin));
+                }
+
+                $deleted++;
+            } else {
+                $failed++;
+            }
+        } catch (\Exception $e) {
+            $failed++;
+        }
+    }
+
+    $message = "{$deleted} article(s) deleted.";
+    if ($failed > 0) {
+        $message .= " {$failed} article(s) could not be deleted.";
+    }
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'deleted' => $deleted,
+            'failed' => $failed,
+        ]);
+    }
+
+    return back()->with('success', $message);
+})->name('admin.articles.bulk-delete')->middleware(['auth', 'admin']);
 
 // ====== TAG MANAGER ROUTES ======
 // Only store, update, and destroy are used by the AJAX modal in the dashboard
@@ -240,6 +412,11 @@ Route::resource('admin/tags', TagController::class, [
     ],
     'only' => ['store', 'update', 'destroy'],
 ])->middleware(['auth', 'admin']);
+
+// Bulk delete tags
+Route::post('admin/tags/bulk-destroy', [TagController::class, 'bulkDestroy'])
+    ->name('admin.tags.bulk-destroy')
+    ->middleware(['auth', 'admin']);
 
 // ====== ABOUT PAGE EDITOR ======
 Route::middleware(['auth', 'admin'])

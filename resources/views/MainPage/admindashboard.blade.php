@@ -141,15 +141,52 @@
                 </h2>
 
                 @if($pendingArticles->count() > 0)
-                    <div class="space-y-4">
-                        @foreach($pendingArticles as $article)
-                            <div class="flex flex-col gap-3 p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors sm:flex-row sm:items-start sm:gap-4 sm:p-4">
+                    {{-- Bulk Actions Toolbar (Super Admin Only) --}}
+                    @if(auth()->user()->role === 'super_admin')
+                        <div id="overviewBulkToolbar" class="hidden mb-4 flex items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-sm text-blue-700">
+                                <span id="overviewSelectedCount">0</span> article(s) selected
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="bulkApprovePendingArticles()"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+                                    Bulk Approve
+                                </button>
+                                <button type="button" onclick="bulkDeletePendingArticles()"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+                                    Bulk Delete
+                                </button>
+                            </div>
+                        </div>
+                    @endif
 
-                                {{-- Thumbnail + Content --}}
+                    <div class="space-y-4">
+                        {{-- Select All Checkbox (Super Admin Only) --}}
+                        @if(auth()->user()->role === 'super_admin')
+                            <div class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+                                <input type="checkbox" id="overviewSelectAll" onchange="toggleSelectAllPending(this.checked)"
+                                       class="w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer">
+                                <label for="overviewSelectAll" class="text-sm text-gray-600 cursor-pointer">
+                                    Select All Pending Articles
+                                </label>
+                            </div>
+                        @endif
+
+                        @foreach($pendingArticles as $article)
+                            <div class="overview-article-item flex flex-col gap-3 p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors sm:flex-row sm:items-start sm:gap-4 sm:p-4" data-article-id="{{ $article->id }}">
+
+                                {{-- Checkbox + Thumbnail + Content --}}
                                 <div class="flex gap-3 flex-1 min-w-0 sm:gap-4">
+                                    @if(auth()->user()->role === 'super_admin')
+                                        <div class="flex-shrink-0">
+                                            <input type="checkbox" class="overview-article-checkbox w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" 
+                                                   data-article-id="{{ $article->id }}" onchange="updatePendingBulkUI()">
+                                        </div>
+                                    @endif
+
                                     <div class="flex-shrink-0 w-20 sm:w-24 aspect-[4/3] bg-gray-100 rounded-md overflow-hidden">
                                         @if($article->cover_image)
-                                            <img src="{{ imageUrl($article->cover_image) }}" class="w-full h-full object-cover" />
+                                            <img src="{{ imageUrl($article->cover_image) }}" class="w-full h-full object-cover" loading="lazy" decoding="async" />
                                         @else
                                             <div class="w-full h-full flex items-center justify-center">
                                                 <span class="text-gray-300 text-2xl">—</span>
@@ -271,14 +308,45 @@
                 </h2>
 
                 @if($publishedArticles->count() > 0)
-                    <div class="space-y-3">
-                        @foreach($publishedArticles as $article)
-                            <div class="flex flex-col gap-3 p-3 border border-gray-100 rounded-lg sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                    {{-- Bulk Actions Toolbar (Super Admin Only) --}}
+                    @if(auth()->user()->role === 'super_admin')
+                        <div id="contentBulkToolbar" class="hidden mb-4 flex items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-sm text-blue-700">
+                                <span id="contentSelectedCount">0</span> article(s) selected
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="bulkUnpublishArticles()"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors">
+                                    Bulk Unpublish
+                                </button>
+                            </div>
+                        </div>
+                    @endif
 
-                                <div class="flex items-center gap-3 min-w-0">
+                    <div class="space-y-3">
+                        {{-- Select All Checkbox (Super Admin Only) --}}
+                        @if(auth()->user()->role === 'super_admin')
+                            <div class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+                                <input type="checkbox" id="contentSelectAll" onchange="toggleSelectAllPublished(this.checked)"
+                                       class="w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer">
+                                <label for="contentSelectAll" class="text-sm text-gray-600 cursor-pointer">
+                                    Select All Published Articles
+                                </label>
+                            </div>
+                        @endif
+
+                        @foreach($publishedArticles as $article)
+                            <div class="content-article-item flex flex-col gap-3 p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors sm:flex-row sm:items-center sm:justify-between sm:p-4" data-article-id="{{ $article->id }}">
+
+                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                    @if(auth()->user()->role === 'super_admin')
+                                        <input type="checkbox" class="content-article-checkbox w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" 
+                                               data-article-id="{{ $article->id }}" onchange="updatePublishedBulkUI()">
+                                    @endif
+
                                     <div class="w-16 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                                         @if($article->cover_image)
-                                            <img src="{{ imageUrl($article->cover_image) }}" class="w-full h-full object-cover" />
+                                            <img src="{{ imageUrl($article->cover_image) }}" class="w-full h-full object-cover" loading="lazy" decoding="async" />
                                         @else
                                             <div class="w-full h-full flex items-center justify-center">
                                                 <span class="text-gray-300 text-lg">—</span>
@@ -394,22 +462,44 @@
                         No tags match your search or filter.
                     </div>
 
+                    {{-- Bulk Delete Toolbar --}}
+                    <div id="bulkDeleteToolbar" class="hidden mb-4 flex items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm text-blue-700">
+                            <span id="selectedCount">0</span> tag(s) selected
+                        </p>
+                        <button type="button" onclick="bulkDeleteTags()"
+                                class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+                            Delete Selected
+                        </button>
+                    </div>
 
                     {{-- Tags List --}}
                     <div id="tagsContainer">
                         @if($tags->count() > 0)
                             <div class="space-y-3">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <input type="checkbox" id="selectAllTags" onchange="toggleSelectAll(this.checked)"
+                                           class="w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer">
+                                    <label for="selectAllTags" class="text-sm text-gray-600 cursor-pointer">
+                                        Select All
+                                    </label>
+                                </div>
                                 @foreach($tags as $tag)
                                     <div class="tag-item flex items-center justify-between gap-3 p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-colors sm:p-4" data-tag-id="{{ $tag->id }}" data-tag-name="{{ strtolower($tag->name) }}" data-article-count="{{ $tag->articles_count }}">
 
-                                        {{-- Tag Info --}}
-                                        <div class="min-w-0">
-                                            <p class="text-sm font-medium text-black truncate">
-                                                {{ $tag->name }}
-                                            </p>
-                                            <p class="text-xs text-gray-400 mt-0.5">
-                                                {{ $tag->articles_count }} article{{ $tag->articles_count !== 1 ? 's' : '' }}
-                                            </p>
+                                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                                            <input type="checkbox" class="tag-checkbox w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" 
+                                                   data-tag-id="{{ $tag->id }}" onchange="updateBulkDeleteUI()">
+                                            
+                                            {{-- Tag Info --}}
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-medium text-black truncate">
+                                                    {{ $tag->name }}
+                                                </p>
+                                                <p class="text-xs text-gray-400 mt-0.5">
+                                                    {{ $tag->articles_count }} article{{ $tag->articles_count !== 1 ? 's' : '' }}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         {{-- Actions --}}
@@ -1151,7 +1241,7 @@
         }
 
         /**
-         * Delete a tag with confirmation
+         * Delete a tag with confirmation (no page reload)
          */
         function deleteTag(tagId) {
             showConfirm(
@@ -1177,7 +1267,18 @@
 
                         const data = await response.json();
                         if (data.success) {
-                            refreshTagsList();
+                            // Remove tag from DOM
+                            const tagElement = document.querySelector(`[data-tag-id="${tagId}"]`);
+                            if (tagElement) {
+                                tagElement.remove();
+                            }
+                            
+                            // Show success message
+                            showAlert('Success', data.message, 'success');
+                            
+                            // Update filter state and reapply filters
+                            filterAdminTags();
+                            updateBulkDeleteUI();
                         } else {
                             showAlert('Error', data.message || 'Failed to delete tag.', 'error');
                         }
@@ -1192,11 +1293,354 @@
         }
 
         /**
-         * Refresh tags list from the server
+         * Toggle select all checkboxes
+         */
+        function toggleSelectAll(checked) {
+            const checkboxes = document.querySelectorAll('.tag-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+            });
+            updateBulkDeleteUI();
+        }
+
+        /**
+         * Update bulk delete UI based on selected checkboxes
+         */
+        function updateBulkDeleteUI() {
+            const checkboxes = document.querySelectorAll('.tag-checkbox');
+            const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const toolbar = document.getElementById('bulkDeleteToolbar');
+            const selectAllCheckbox = document.getElementById('selectAllTags');
+            
+            // Show/hide toolbar
+            if (selectedCount > 0) {
+                toolbar.classList.remove('hidden');
+                toolbar.classList.add('flex');
+            } else {
+                toolbar.classList.add('hidden');
+                toolbar.classList.remove('flex');
+            }
+            
+            // Update count display
+            document.getElementById('selectedCount').textContent = selectedCount;
+            
+            // Update select all checkbox state
+            const visibleCheckboxes = Array.from(checkboxes).filter(cb => {
+                return !cb.closest('.tag-item').classList.contains('hidden');
+            });
+            
+            if (visibleCheckboxes.length > 0) {
+                const allVisibleChecked = visibleCheckboxes.every(cb => cb.checked);
+                selectAllCheckbox.checked = allVisibleChecked && visibleCheckboxes.length > 0;
+            } else {
+                selectAllCheckbox.checked = false;
+            }
+        }
+
+        /**
+         * Bulk delete selected tags with confirmation
+         */
+        function bulkDeleteTags() {
+            const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
+            const selectedTagIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.tagId));
+            
+            if (selectedTagIds.length === 0) {
+                showAlert('Warning', 'Please select at least one tag to delete.', 'warning');
+                return;
+            }
+
+            showConfirm(
+                'Delete Selected Tags?',
+                `Are you sure you want to delete ${selectedTagIds.length} tag(s)? This action cannot be undone.`,
+                async () => {
+                    const csrfToken = document.querySelector('input[name="_token"]').value;
+
+                    try {
+                        const response = await fetch('/admin/tags/bulk-destroy', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                tag_ids: selectedTagIds,
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw data;
+                        }
+
+                        const data = await response.json();
+                        if (data.success) {
+                            // Remove deleted tags from DOM
+                            selectedTagIds.forEach(tagId => {
+                                const tagElement = document.querySelector(`[data-tag-id="${tagId}"]`);
+                                if (tagElement) {
+                                    tagElement.remove();
+                                }
+                            });
+                            
+                            // Show success message
+                            showAlert('Success', data.message, 'success');
+                            
+                            // Reset UI and reapply filters
+                            document.getElementById('selectAllTags').checked = false;
+                            filterAdminTags();
+                            updateBulkDeleteUI();
+                        } else {
+                            showAlert('Error', data.message || 'Failed to delete tags.', 'error');
+                        }
+                    } catch (err) {
+                        showAlert('Error', err.message || 'An error occurred while deleting the tags.', 'error');
+                    }
+                },
+                'Delete All',
+                'Cancel',
+                true
+            );
+        }
+
+        /**
+         * Refresh tags list (preserves state without reload)
          */
         function refreshTagsList() {
-            // Reload the page to refresh all data and preserve session
-            location.reload();
+            // Filter and reapply UI state - no page reload
+            filterAdminTags();
+            updateBulkDeleteUI();
+        }
+
+        // ========== BULK ARTICLE ACTIONS (PENDING - OVERVIEW TAB) ==========
+
+        /**
+         * Toggle select all pending articles
+         */
+        function toggleSelectAllPending(checked) {
+            const checkboxes = document.querySelectorAll('.overview-article-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+            });
+            updatePendingBulkUI();
+        }
+
+        /**
+         * Update pending articles bulk UI
+         */
+        function updatePendingBulkUI() {
+            const checkboxes = document.querySelectorAll('.overview-article-checkbox');
+            const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const toolbar = document.getElementById('overviewBulkToolbar');
+            const selectAllCheckbox = document.getElementById('overviewSelectAll');
+            
+            if (selectedCount > 0) {
+                toolbar.classList.remove('hidden');
+                toolbar.classList.add('flex');
+            } else {
+                toolbar.classList.add('hidden');
+                toolbar.classList.remove('flex');
+            }
+            
+            document.getElementById('overviewSelectedCount').textContent = selectedCount;
+            selectAllCheckbox.checked = selectedCount === checkboxes.length && checkboxes.length > 0;
+        }
+
+        /**
+         * Bulk approve pending articles
+         */
+        function bulkApprovePendingArticles() {
+            const checkboxes = document.querySelectorAll('.overview-article-checkbox:checked');
+            const articleIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.articleId));
+            
+            if (articleIds.length === 0) {
+                showAlert('Warning', 'Please select at least one article to approve.', 'warning');
+                return;
+            }
+
+            showConfirm(
+                'Approve Selected Articles?',
+                `Are you sure you want to approve ${articleIds.length} article(s)?`,
+                async () => {
+                    const csrfToken = document.querySelector('input[name="_token"]').value;
+
+                    try {
+                        const response = await fetch('/admin/articles/bulk-approve', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                article_ids: articleIds,
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw data;
+                        }
+
+                        const data = await response.json();
+                        showAlert('Success', data.message, 'success');
+                        
+                        // Refresh page to reload articles
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } catch (err) {
+                        showAlert('Error', err.message || 'An error occurred while approving articles.', 'error');
+                    }
+                },
+                'Approve All',
+                'Cancel',
+                false
+            );
+        }
+
+        /**
+         * Bulk delete pending articles
+         */
+        function bulkDeletePendingArticles() {
+            const checkboxes = document.querySelectorAll('.overview-article-checkbox:checked');
+            const articleIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.articleId));
+            
+            if (articleIds.length === 0) {
+                showAlert('Warning', 'Please select at least one article to delete.', 'warning');
+                return;
+            }
+
+            showConfirm(
+                'Delete Selected Articles?',
+                `Are you sure you want to delete ${articleIds.length} article(s)? This action cannot be undone.`,
+                async () => {
+                    const csrfToken = document.querySelector('input[name="_token"]').value;
+
+                    try {
+                        const response = await fetch('/admin/articles/bulk-delete', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                article_ids: articleIds,
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw data;
+                        }
+
+                        const data = await response.json();
+                        showAlert('Success', data.message, 'success');
+                        
+                        // Refresh page to reload articles
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } catch (err) {
+                        showAlert('Error', err.message || 'An error occurred while deleting articles.', 'error');
+                    }
+                },
+                'Delete All',
+                'Cancel',
+                true
+            );
+        }
+
+        // ========== BULK ARTICLE ACTIONS (PUBLISHED - CONTENT TAB) ==========
+
+        /**
+         * Toggle select all published articles
+         */
+        function toggleSelectAllPublished(checked) {
+            const checkboxes = document.querySelectorAll('.content-article-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+            });
+            updatePublishedBulkUI();
+        }
+
+        /**
+         * Update published articles bulk UI
+         */
+        function updatePublishedBulkUI() {
+            const checkboxes = document.querySelectorAll('.content-article-checkbox');
+            const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const toolbar = document.getElementById('contentBulkToolbar');
+            const selectAllCheckbox = document.getElementById('contentSelectAll');
+            
+            if (selectedCount > 0) {
+                toolbar.classList.remove('hidden');
+                toolbar.classList.add('flex');
+            } else {
+                toolbar.classList.add('hidden');
+                toolbar.classList.remove('flex');
+            }
+            
+            document.getElementById('contentSelectedCount').textContent = selectedCount;
+            selectAllCheckbox.checked = selectedCount === checkboxes.length && checkboxes.length > 0;
+        }
+
+        /**
+         * Bulk unpublish published articles
+         */
+        function bulkUnpublishArticles() {
+            const checkboxes = document.querySelectorAll('.content-article-checkbox:checked');
+            const articleIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.articleId));
+            
+            if (articleIds.length === 0) {
+                showAlert('Warning', 'Please select at least one article to unpublish.', 'warning');
+                return;
+            }
+
+            showConfirm(
+                'Unpublish Selected Articles?',
+                `Are you sure you want to unpublish ${articleIds.length} article(s)? They will return to the review queue.`,
+                async () => {
+                    const csrfToken = document.querySelector('input[name="_token"]').value;
+
+                    try {
+                        const response = await fetch('/admin/articles/bulk-unpublish', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                article_ids: articleIds,
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw data;
+                        }
+
+                        const data = await response.json();
+                        showAlert('Success', data.message, 'success');
+                        
+                        // Refresh page to reload articles
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } catch (err) {
+                        showAlert('Error', err.message || 'An error occurred while unpublishing articles.', 'error');
+                    }
+                },
+                'Unpublish All',
+                'Cancel',
+                false
+            );
         }
     </script>
 

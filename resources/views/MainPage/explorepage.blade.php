@@ -42,11 +42,11 @@
 
             {{-- Sort Tabs --}}
             <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <button onclick="setSort('latest')" id="tab-latest"
+                <button onclick="navigateWithSort('latest')" id="tab-latest"
                         class="px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all">
                     Latest
                 </button>
-                <button onclick="setSort('popular')" id="tab-popular"
+                <button onclick="navigateWithSort('popular')" id="tab-popular"
                         class="px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all">
                     Popular
                 </button>
@@ -54,12 +54,12 @@
 
             {{-- Category Chips (Dynamic) --}}
             <div class="flex items-center gap-2 flex-wrap" id="categoryChips">
-                <button onclick="setCategory('all')" id="cat-all"
+                <button onclick="navigateWithCategory('all')" id="cat-all"
                         class="px-3 py-1.5 text-xs font-medium rounded-full bg-black text-white transition-colors">
                     All
                 </button>
                 @foreach($categories as $cat)
-                    <button onclick="setCategory('{{ $cat->slug }}')" id="cat-{{ $cat->slug }}"
+                    <button onclick="navigateWithCategory('{{ $cat->slug }}')" id="cat-{{ $cat->slug }}"
                             class="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                         {{ $cat->name }}
                     </button>
@@ -73,7 +73,7 @@
     {{-- Articles Grid --}}
     <section class="max-w-7xl mx-auto px-6 pb-16">
         <div id="articlesGrid" class="grid md:grid-cols-3 gap-8">
-            {{-- Pre-rendered article cards using Blade component --}}
+            {{-- Article cards rendered here --}}
             @forelse($articles as $article)
             <div class="article-card-wrapper"
                 data-article-id="{{ $article->id }}"
@@ -101,6 +101,23 @@
             @endforelse
         </div>
 
+        {{-- View More Button --}}
+        @if($articlesPaginated->hasMorePages())
+        <div class="mt-12 text-center">
+            <button id="viewMoreBtn" onclick="loadMoreArticles()" 
+                    class="px-6 py-3 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors">
+                View More
+            </button>
+            <div id="loadingSpinner" class="hidden mt-4">
+                <div class="inline-block animate-spin">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Empty State --}}
         <div id="emptyState" class="hidden text-center py-16">
             <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,10 +128,10 @@
     </section>
 
     <script>
-        const activeTag = @json($activeTag);
         let currentSort = 'latest';
         let currentCategory = 'all';
-        let searchQuery = '';
+        let isLoadingMore = false;
+        let currentPage = 1;
 
         /**
          * Handle search form submission on Enter key
@@ -127,81 +144,170 @@
         }
 
         /**
-         * Filter and sort articles based on current state
-         * Manipulates DOM directly - no HTML generation
+         * Navigate with new sort parameter
          */
-        function applyFilters() {
-            const cards = document.querySelectorAll('.article-card-wrapper');
-            let visibleCards = [];
-
-            cards.forEach(card => {
-                // Search filter (case-insensitive)
-                const searchText = card.dataset.searchText;
-                const matchesSearch = searchQuery === '' || searchText.includes(searchQuery.toLowerCase());
-
-                // Category filter
-                const cardCategory = card.dataset.articleCategory;
-                const matchesCategory = currentCategory === 'all' || cardCategory === currentCategory;
-
-                // Determine visibility
-                const visible = matchesSearch && matchesCategory;
-                card.style.display = visible ? '' : 'none';
-
-                if (visible) {
-                    visibleCards.push(card);
-                }
-            });
-
-            // Apply sorting to visible cards
-            applySorting(visibleCards);
-
-            // Update empty state
-            updateEmptyState();
+        function navigateWithSort(sort) {
+            currentSort = sort;
+            currentPage = 1;
+            
+            const params = new URLSearchParams();
+            if (@json($activeTag) !== null) {
+                params.set('tag', @json($activeTag->slug ?? null));
+            }
+            if (currentCategory && currentCategory !== 'all') {
+                params.set('category', currentCategory);
+            }
+            const searchValue = document.getElementById('searchInput').value;
+            if (searchValue) {
+                params.set('search', searchValue);
+            }
+            
+            const url = params.toString() ? `{{ route('explore') }}?${params.toString()}` : '{{ route('explore') }}';
+            window.location.href = url;
         }
 
         /**
-         * Sort visible cards and reorder DOM
+         * Navigate with new category parameter
          */
-        function applySorting(visibleCards) {
-            if (visibleCards.length === 0) return;
+        function navigateWithCategory(cat) {
+            currentCategory = cat;
+            currentPage = 1;
 
-            const grid = document.getElementById('articlesGrid');
+            const params = new URLSearchParams();
+            if (@json($activeTag) !== null) {
+                params.set('tag', @json($activeTag->slug ?? null));
+            }
+            if (cat !== 'all') {
+                params.set('category', cat);
+            }
+            const searchValue = document.getElementById('searchInput').value;
+            if (searchValue) {
+                params.set('search', searchValue);
+            }
+            
+            const url = params.toString() ? `{{ route('explore') }}?${params.toString()}` : '{{ route('explore') }}';
+            window.location.href = url;
+        }
 
-            if (currentSort === 'popular') {
-                // Sort by views descending
-                visibleCards.sort((a, b) => {
-                    const viewsA = parseInt(a.dataset.articleViews) || 0;
-                    const viewsB = parseInt(b.dataset.articleViews) || 0;
-                    return viewsB - viewsA;
-                });
-            } else {
-                // Sort by date descending (latest first)
-                visibleCards.sort((a, b) => {
-                    const dateA = parseInt(a.dataset.articleDate) || 0;
-                    const dateB = parseInt(b.dataset.articleDate) || 0;
-                    return dateB - dateA;
-                });
+        /**
+         * Load more articles via AJAX
+         */
+        function loadMoreArticles() {
+            if (isLoadingMore) return; // Prevent duplicate requests
+            
+            isLoadingMore = true;
+            const viewMoreBtn = document.getElementById('viewMoreBtn');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            viewMoreBtn.style.display = 'none';
+            loadingSpinner.classList.remove('hidden');
+
+            const nextPage = currentPage + 1;
+            const params = new URLSearchParams();
+            params.set('page', nextPage);
+            
+            if (@json($activeTag) !== null) {
+                params.set('tag', @json($activeTag->slug ?? null));
+            }
+            if (currentCategory && currentCategory !== 'all') {
+                params.set('category', currentCategory);
+            }
+            const searchValue = document.getElementById('searchInput').value;
+            if (searchValue) {
+                params.set('search', searchValue);
             }
 
-            // Reorder DOM by moving cards to end (maintains order)
-            visibleCards.forEach(card => {
-                grid.appendChild(card);
+            fetch(`{{ route('explore') }}?${params.toString()}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load articles');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.articles.length > 0) {
+                    currentPage = nextPage;
+                    appendArticles(data.articles);
+                    
+                    // Update View More button visibility
+                    if (data.has_more) {
+                        viewMoreBtn.style.display = 'block';
+                    } else {
+                        viewMoreBtn.style.display = 'none';
+                    }
+                } else {
+                    viewMoreBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading more articles:', error);
+                showAlert('Error', 'Failed to load more articles. Please try again.', 'error');
+                viewMoreBtn.style.display = 'block';
+            })
+            .finally(() => {
+                loadingSpinner.classList.add('hidden');
+                isLoadingMore = false;
             });
         }
 
         /**
-         * Update sort tab styling
+         * Append new articles to grid
          */
-        function updateSortTabs() {
-            const latestBtn = document.getElementById('tab-latest');
-            const popularBtn = document.getElementById('tab-popular');
+        function appendArticles(articles) {
+            const grid = document.getElementById('articlesGrid');
+            
+            articles.forEach(article => {
+                // Create wrapper div
+                const wrapper = document.createElement('div');
+                wrapper.className = 'article-card-wrapper';
+                wrapper.dataset.articleId = article.id;
+                wrapper.dataset.articleTitle = article.title.toLowerCase();
+                wrapper.dataset.articleSlug = article.slug;
+                wrapper.dataset.articleCategory = article.category;
+                wrapper.dataset.articleViews = article.views || 0;
+                wrapper.dataset.articleDate = Math.floor(new Date(article.date).getTime() / 1000);
+                wrapper.dataset.searchText = (article.title + ' ' + article.slug + ' ' + (article.description || '')).toLowerCase();
 
-            if (currentSort === 'latest') {
-                latestBtn.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all';
-                popularBtn.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
+                // Create card HTML using the same structure as the component
+                wrapper.innerHTML = `
+                    <a href="/blog/${article.slug}" class="group cursor-pointer">
+                        <div class="relative w-full aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden mb-4">
+                            <img src="${article.thumbnail}" alt="${article.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-medium text-gray-400 uppercase">${article.categoryName}</span>
+                            </div>
+                            <h3 class="text-base font-semibold text-black group-hover:text-blue-600 transition-colors line-clamp-2">${article.title}</h3>
+                            <p class="text-sm text-gray-500 line-clamp-2">${article.description || ''}</p>
+                            <div class="pt-2 flex items-center justify-between text-xs text-gray-400">
+                                <span>${article.author}</span>
+                                <span>${article.views} views</span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+
+                grid.appendChild(wrapper);
+            });
+        }
+
+        /**
+         * Show/hide empty state
+         */
+        function updateEmptyState() {
+            const visibleCount = document.querySelectorAll('.article-card-wrapper').length;
+            const emptyState = document.getElementById('emptyState');
+
+            if (visibleCount === 0) {
+                emptyState.classList.remove('hidden');
             } else {
-                latestBtn.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
-                popularBtn.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all';
+                emptyState.classList.add('hidden');
             }
         }
 
@@ -221,66 +327,31 @@
         }
 
         /**
-         * Show/hide empty state based on visible articles
+         * Update sort button styling
          */
-        function updateEmptyState() {
-            const visibleCount = document.querySelectorAll('.article-card-wrapper:not([style*="display: none"])').length;
-            const emptyState = document.getElementById('emptyState');
+        function updateSortButtons() {
+            const latestBtn = document.getElementById('tab-latest');
+            const popularBtn = document.getElementById('tab-popular');
 
-            if (visibleCount === 0) {
-                emptyState.classList.remove('hidden');
+            if (currentSort === 'latest') {
+                latestBtn.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all';
+                popularBtn.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
             } else {
-                emptyState.classList.add('hidden');
+                latestBtn.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-black transition-all';
+                popularBtn.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-black shadow-sm transition-all';
             }
-        }
-
-        /**
-         * Handle sort change
-         */
-        function setSort(sort) {
-            currentSort = sort;
-            updateSortTabs();
-            applyFilters();
-        }
-
-        /**
-         * Handle category filter change
-         */
-        function setCategory(cat) {
-            currentCategory = cat;
-            updateCategoryButtons();
-
-            // Update URL while preserving tag filter and search if present
-            const params = new URLSearchParams();
-            if (activeTag) {
-                params.set('tag', activeTag.slug);
-            }
-            if (cat !== 'all') {
-                params.set('category', cat);
-            }
-            const searchValue = document.getElementById('searchInput').value;
-            if (searchValue) {
-                params.set('search', searchValue);
-            }
-            const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
-
-            applyFilters();
-        }
-
-        /**
-         * Handle search input
-         */
-        function filterArticles() {
-            searchQuery = document.getElementById('searchInput').value;
-            applyFilters();
         }
 
         // Initial setup on page load
         document.addEventListener('DOMContentLoaded', () => {
-            updateSortTabs();
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryParam = urlParams.get('category') || 'all';
+            currentCategory = categoryParam;
+            currentPage = parseInt(urlParams.get('page')) || 1;
+            
+            updateSortButtons();
             updateCategoryButtons();
-            applyFilters();
+            updateEmptyState();
         });
     </script>
 

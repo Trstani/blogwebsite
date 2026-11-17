@@ -94,4 +94,43 @@ class TagController extends Controller
             ->route('admin.dashboard', ['tab' => 'taxonomy'])
             ->with('success', "Tag deleted successfully. Removed from {$articlesCount} article(s).");
     }
+
+    /**
+     * Bulk delete tags.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'tag_ids' => 'required|array|min:1',
+            'tag_ids.*' => 'integer|exists:tags,id',
+        ]);
+
+        $tagIds = $validated['tag_ids'];
+        $totalRemoved = 0;
+        $deletedCount = 0;
+
+        foreach ($tagIds as $tagId) {
+            $tag = Tag::find($tagId);
+            if ($tag) {
+                $articlesCount = $tag->articles()->count();
+                $totalRemoved += $articlesCount;
+                $tag->delete();
+                $deletedCount++;
+            }
+        }
+
+        // Return JSON for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$deletedCount} tag(s) deleted. Removed from {$totalRemoved} article(s) total.",
+                'deleted_count' => $deletedCount,
+                'total_removed' => $totalRemoved,
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.dashboard', ['tab' => 'taxonomy'])
+            ->with('success', "{$deletedCount} tag(s) deleted. Removed from {$totalRemoved} article(s) total.");
+    }
 }

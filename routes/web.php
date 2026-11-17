@@ -102,7 +102,8 @@ Route::get('/auth', function () {
 Route::get('/explore', function (Request $request) {
     $articlesQuery = Article::where('status', 'published')
         ->withCount(['comments as discussion_count' => fn($q) => $q->whereNull('parent_id')])
-        ->with('category', 'author', 'tags');
+        ->with('category', 'author', 'tags')
+        ->latest('published_at');
 
     // Filter by tag if provided
     $activeTag = null;
@@ -137,8 +138,13 @@ Route::get('/explore', function (Request $request) {
         });
     }
 
-    $articles = $articlesQuery->get()
-        ->map(fn ($a) => (object) [
+    // Apply pagination - 12 articles per page
+    $articlesPaginated = $articlesQuery->paginate(12);
+
+    // Transform articles for rendering
+    $articles = $articlesPaginated->items();
+    $articles = array_map(function ($a) {
+        return (object) [
             'id' => $a->id,
             'title' => $a->title,
             'slug' => $a->slug,
@@ -152,14 +158,25 @@ Route::get('/explore', function (Request $request) {
             'thumbnail' => ImageHelper::imageUrl($a->cover_image),
             'views' => $a->views,
             'discussion_count' => $a->discussion_count,
-        ])
-        ->values();
+        ];
+    }, $articles);
+
+    // For AJAX requests, return JSON
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'articles' => $articles,
+            'has_more' => $articlesPaginated->hasMorePages(),
+            'next_page' => $articlesPaginated->hasMorePages() ? $articlesPaginated->currentPage() + 1 : null,
+            'total' => $articlesPaginated->total(),
+        ]);
+    }
 
     $categories = Category::all();
 
     return view(
         'MainPage.explorepage',
-        compact('articles', 'categories', 'activeTag', 'searchQuery')
+        compact('articles', 'categories', 'activeTag', 'searchQuery', 'articlesPaginated')
     );
 })->name('explore');
 
